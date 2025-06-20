@@ -2871,3 +2871,22 @@ class ArtisticImageProcessor {
 
 // 初始化应用
 window.app = new ArtisticImageProcessor();
+// 在 script.js 文件的最后添加这段代码
+
+// 全局变量和初始化
+let app;
+
+// DOM 加载完成后初始化应用
+document.addEventListener('DOMContentLoaded', function() {
+    app = new ArtisticImageProcessor();
+    
+    // 设置全局引用以便在 HTML 中调用
+    window.imageProcessor = app;
+    
+    console.log('🎨 Loki\'s Digital Atelier 已启动！');
+});
+
+// 兼容性检查
+if (typeof window !== 'undefined') {
+    window.app = app;
+}
