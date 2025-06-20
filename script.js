@@ -1,4 +1,3 @@
-```javascript
 class ArtisticImageProcessor {
     constructor() {
         this.files = [];
@@ -18,7 +17,6 @@ class ArtisticImageProcessor {
         this.dragType = null; // 'move', 'resize-tl', 'resize-tr', 'resize-bl', 'resize-br'
         this.dragStart = { x: 0, y: 0 };
         this.currentCropImage = null;
-        this.manualCropParams = null; // 用于存储手动裁剪的参数
         
         this.init();
     }
@@ -2647,13 +2645,13 @@ class ArtisticImageProcessor {
                 <div>
                     <p class="text-xs text-morandi-shadow mb-2 font-medium">处理前</p>
                     <div class="relative overflow-hidden rounded-xl border-2 border-morandi-cloud">
-                        <img src="${result.originalUrl}" alt="原图" class="w-full h-20 object-cover">
+                        <img src="https://hatchcanvas.com/_/assets/ab_aaV3Nyv82q-mg5g9JCgbG/keys//${result.originalUrl}" alt="原图" class="w-full h-20 object-cover">
                     </div>
                 </div>
                 <div>
                     <p class="text-xs text-morandi-shadow mb-2 font-medium">处理后</p>
                     <div class="relative overflow-hidden rounded-xl border-2 border-morandi-sage">
-                        <img src="${result.processedUrl}" alt="处理后" class="w-full h-20 object-cover">
+                        <img src="https://hatchcanvas.com/_/assets/ab_aaV3Nyv82q-mg5g9JCgbG/keys//${result.processedUrl}" alt="处理后" class="w-full h-20 object-cover">
                     </div>
                 </div>
             </div>
@@ -2724,7 +2722,7 @@ class ArtisticImageProcessor {
                         </div>
                     </div>
                     <div class="p-6">
-                        <img src="${url}" alt="${name}" class="max-w-full max-h-96 mx-auto rounded-xl shadow-lg">
+                        <img src="https://hatchcanvas.com/_/assets/ab_aaV3Nyv82q-mg5g9JCgbG/keys//${url}" alt="${name}" class="max-w-full max-h-96 mx-auto rounded-xl shadow-lg">
                     </div>
                 </div>
             </div>
@@ -2892,4 +2890,3 @@ document.addEventListener('DOMContentLoaded', function() {
 if (typeof window !== 'undefined') {
     window.app = app;
 }
-```
