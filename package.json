@@ -1,0 +1,54 @@
+{
+  "name": "loki-digital-atelier",
+  "version": "1.0.0",
+  "description": "🎨 艺术级图像处理工作室 - 专业的前端图像处理工具",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "serve": "npx http-server . -p 8000 -o",
+    "build": "echo 'No build process needed for static files'",
+    "test": "echo 'No tests specified'"
+  },
+  "keywords": [
+    "image-processing",
+    "image-editor",
+    "canvas",
+    "frontend",
+    "javascript",
+    "html5",
+    "css3",
+    "图像处理",
+    "图片编辑",
+    "前端工具"
+  ],
+  "author": "Loki Mao",
+  "license": "MIT",
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lokimao/loki-digital-atelier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lokimao/loki-digital-atelier/issues"
+  },
+  "homepage": "https://github.com/lokimao/loki-digital-atelier#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "> 1%",
+    "not dead"
+  ],
+  "files": [
+    "index.html",
+    "style.css",
+    "script.js",
+    "README.md"
+  ]
+}
