@@ -17,8 +17,10 @@ class ArtisticImageProcessor {
         this.dragType = null; // 'move', 'resize-tl', 'resize-tr', 'resize-bl', 'resize-br'
         this.dragStart = { x: 0, y: 0 };
         this.currentCropImage = null;
+        this.manualCropParams = null; // 用于存储手动裁剪的参数
         
-        this.init();
+        // 不需要在这里调用 init()，因为它会在 DOMContentLoaded 中被调用
+        // this.init(); 
     }
 
     init() {
@@ -1651,8 +1653,11 @@ class ArtisticImageProcessor {
                             await this.applyBackground(canvas, ctx, img);
                             break;
                         case 'analyze':
-                            return this.analyzeImage(file, img);
-                            break;
+                            // For 'analyze' mode, the promise should resolve immediately after analysis
+                            // and not wait for canvas.toDataURL.
+                            const analysisResult = await this.analyzeImage(file, img);
+                            resolve(analysisResult);
+                            return; // Exit here to prevent further processing
                     }
 
                     let targetFormat = document.getElementById('targetFormat')?.value || 'png';
@@ -1716,10 +1721,25 @@ class ArtisticImageProcessor {
                 });
             };
             
+            // If file is already a processed object (e.g., from batch processing), use its processedUrl
             if (file instanceof File) {
                 img.src = URL.createObjectURL(file);
+            } else if (file && file.processedUrl) { // Check if file has a processedUrl property
+                img.src = file.processedUrl;
             } else {
-                img.src = file.processedUrl || file.originalUrl;
+                // Fallback for unexpected file types
+                console.error('Invalid file object for image loading:', file);
+                const originalName = file.name || 'unknown_file';
+                resolve({
+                    originalName: originalName,
+                    processedName: `${originalName}_error.unknown`,
+                    originalUrl: '#', // Placeholder
+                    processedUrl: '#', // Placeholder
+                    type: mode,
+                    size: 0,
+                    format: 'unknown',
+                    error: '无效文件对象'
+                });
             }
         });
     }
@@ -2582,7 +2602,16 @@ class ArtisticImageProcessor {
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = reject;
-            img.src = URL.createObjectURL(file);
+            // Check if file is already a data URL or blob URL
+            if (typeof file === 'string' && (file.startsWith('data:') || file.startsWith('blob:'))) {
+                img.src = file;
+            } else if (file instanceof File) {
+                img.src = URL.createObjectURL(file);
+            } else if (file && file.processedUrl) { // Handle cases where 'file' might be a processed result object
+                img.src = file.processedUrl;
+            } else {
+                reject(new Error('Invalid file type for loadImage.'));
+            }
         });
     }
 
@@ -2645,13 +2674,13 @@ class ArtisticImageProcessor {
                 <div>
                     <p class="text-xs text-morandi-shadow mb-2 font-medium">处理前</p>
                     <div class="relative overflow-hidden rounded-xl border-2 border-morandi-cloud">
-                        <img src="https://hatchcanvas.com/_/assets/ab_aaV3Nyv82q-mg5g9JCgbG/keys//${result.originalUrl}" alt="原图" class="w-full h-20 object-cover">
+                        <img src="${result.originalUrl}" alt="原图" class="w-full h-20 object-cover">
                     </div>
                 </div>
                 <div>
                     <p class="text-xs text-morandi-shadow mb-2 font-medium">处理后</p>
                     <div class="relative overflow-hidden rounded-xl border-2 border-morandi-sage">
-                        <img src="https://hatchcanvas.com/_/assets/ab_aaV3Nyv82q-mg5g9JCgbG/keys//${result.processedUrl}" alt="处理后" class="w-full h-20 object-cover">
+                        <img src="${result.processedUrl}" alt="处理后" class="w-full h-20 object-cover">
                     </div>
                 </div>
             </div>
@@ -2692,8 +2721,8 @@ class ArtisticImageProcessor {
         const zip = new JSZip();
         
         for (const result of this.results) {
-            const response = await fetch(result.processedUrl);
-            const blob = await response.blob();
+            // Fetch the blob directly if it's a blob URL, otherwise convert data URL to blob
+            const blob = await (result.processedUrl.startsWith('blob:') ? fetch(result.processedUrl).then(r => r.blob()) : this.dataURLtoBlob(result.processedUrl));
             zip.file(result.processedName, blob);
         }
 
@@ -2702,6 +2731,19 @@ class ArtisticImageProcessor {
         
         const currentTime = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
         this.downloadImage(zipUrl, `loki_atelier_${currentTime}.zip`);
+    }
+
+    // Helper to convert data URL to Blob for JSZip
+    dataURLtoBlob(dataurl) {
+        const arr = dataurl.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new Blob([u8arr], { type: mime });
     }
 
     previewImage(url, name) {
@@ -2722,7 +2764,7 @@ class ArtisticImageProcessor {
                         </div>
                     </div>
                     <div class="p-6">
-                        <img src="https://hatchcanvas.com/_/assets/ab_aaV3Nyv82q-mg5g9JCgbG/keys//${url}" alt="${name}" class="max-w-full max-h-96 mx-auto rounded-xl shadow-lg">
+                        <img src="${url}" alt="${name}" class="max-w-full max-h-96 mx-auto rounded-xl shadow-lg">
                     </div>
                 </div>
             </div>
@@ -2869,24 +2911,21 @@ class ArtisticImageProcessor {
     }
 }
 
-// 初始化应用
-window.app = new ArtisticImageProcessor();
-// 在 script.js 文件的最后添加这段代码
+// 修正后的实例化逻辑
+// 确保只实例化一次，并在 DOMContentLoaded 后初始化
+let app; // Declare app globally but don't instantiate immediately
 
-// 全局变量和初始化
-let app;
-
-// DOM 加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', function() {
-    app = new ArtisticImageProcessor();
+    app = new ArtisticImageProcessor(); // Instantiate when DOM is ready
+    app.init(); // Call init method to set up event listeners and animations
     
-    // 设置全局引用以便在 HTML 中调用
-    window.imageProcessor = app;
+    // Set global reference for HTML onclick attributes
+    window.app = app;
     
     console.log('🎨 Loki\'s Digital Atelier 已启动！');
 });
 
-// 兼容性检查
-if (typeof window !== 'undefined') {
-    window.app = app;
-}
+// Remove the redundant instantiation outside DOMContentLoaded
+// if (typeof window !== 'undefined') {
+//     window.app = app; // This line is no longer needed or should be placed carefully
+// }
