@@ -18,9 +18,6 @@ class ArtisticImageProcessor {
         this.dragStart = { x: 0, y: 0 };
         this.currentCropImage = null;
         this.manualCropParams = null; // 用于存储手动裁剪的参数
-        
-        // 不需要在这里调用 init()，因为它会在 DOMContentLoaded 中被调用
-        // this.init(); 
     }
 
     init() {
@@ -101,7 +98,8 @@ class ArtisticImageProcessor {
         // 批量操作
         const batchAllBtn = document.getElementById('batchAll');
         if (batchAllBtn) {
-            batchAllBtn.addEventListener('click', () => this.batchProcessAll());
+            // 修改这里，点击时弹出选择模态框
+            batchAllBtn.addEventListener('click', () => this.openBatchSelectModal());
         }
         
         const previewBatchBtn = document.getElementById('previewBatch');
@@ -1563,7 +1561,28 @@ class ArtisticImageProcessor {
         this.updateUI();
     }
 
-    async batchProcessAll() {
+    // 新增方法：打开批量操作选择模态框
+    openBatchSelectModal() {
+        document.getElementById('batchSelectModal').classList.remove('hidden');
+    }
+
+    // 新增方法：关闭批量操作选择模态框
+    closeBatchSelectModal() {
+        document.getElementById('batchSelectModal').classList.add('hidden');
+    }
+
+    // 新增方法：确认并开始批量操作
+    async confirmBatchOperations() {
+        this.closeBatchSelectModal(); // 关闭模态框
+        
+        const selectedOperations = Array.from(document.querySelectorAll('input[name="batchOperation"]:checked'))
+                                      .map(checkbox => checkbox.value);
+
+        if (selectedOperations.length === 0) {
+            alert('请至少选择一个批量操作项。');
+            return;
+        }
+        
         if (this.isProcessing || this.files.length === 0) return;
 
         this.isProcessing = true;
@@ -1571,11 +1590,11 @@ class ArtisticImageProcessor {
         
         const results = [];
         const totalFiles = this.files.length;
-        const operations = ['convert', 'compress', 'resize', 'watermark', 'filter'];
+        const operations = selectedOperations; // 使用用户选择的操作
 
         for (let i = 0; i < totalFiles; i++) {
             const file = this.files[i];
-            let processedFile = file;
+            let processedFile = file; // Start with the original file for the first operation
             
             for (let j = 0; j < operations.length; j++) {
                 const operation = operations[j];
@@ -1590,9 +1609,11 @@ class ArtisticImageProcessor {
                 );
                 
                 await this.sleep(300);
+                // Call processFile with the current processedFile, so results chain
                 processedFile = await this.processFile(processedFile, operation);
             }
             
+            // The last processedFile after all operations is the final result for this original file
             results.push(processedFile);
         }
 
@@ -1602,6 +1623,7 @@ class ArtisticImageProcessor {
         this.isProcessing = false;
         this.updateUI();
     }
+
 
     getOperationName(operation) {
         const names = {
@@ -1630,7 +1652,6 @@ class ArtisticImageProcessor {
                     ctx.drawImage(img, 0, 0);
 
                     let skipCanvas = false;
-                    let useOriginal = false;
                     let compressResult = null;
                     
                     switch(mode) {
@@ -1654,29 +1675,44 @@ class ArtisticImageProcessor {
                             break;
                         case 'analyze':
                             // For 'analyze' mode, the promise should resolve immediately after analysis
-                            // and not wait for canvas.toDataURL.
                             const analysisResult = await this.analyzeImage(file, img);
                             resolve(analysisResult);
                             return; // Exit here to prevent further processing
                     }
 
-                    let targetFormat = document.getElementById('targetFormat')?.value || 'png';
-                    const quality = parseInt(document.getElementById('jpegQuality')?.value || 85) / 100;
+                    // Determine the output format based on original file type or selected targetFormat
+                    // For compression, we maintain the original type by default unless it's explicitly converting
+                    let actualFormat = file.type ? file.type.split('/')[1] : 'png'; // Default to original type
+                    let quality = parseInt(document.getElementById('jpegQuality')?.value || 85) / 100;
                     
-                    // 处理输出
-                    let processedUrl;
-                    let actualFormat = targetFormat;
-                    let fileSize = 0;
-                    let finalQuality = quality;
-                    
-                    // 如果是压缩模式且使用了目标大小
-                    if (mode === 'compress' && compressResult && compressResult.useTargetSize) {
-                        actualFormat = 'jpeg'; // 压缩时使用JPEG格式
-                        finalQuality = compressResult.quality;
+                    if (mode === 'convert') {
+                        actualFormat = document.getElementById('targetFormat')?.value || 'png';
                     }
                     
-                    processedUrl = canvas.toDataURL(`image/${actualFormat}`, finalQuality);
-                    fileSize = this.getCanvasSizeBytes(canvas, actualFormat, finalQuality);
+                    // If it's a JPEG, and we are compressing, use the compressed quality
+                    if (mode === 'compress' && compressResult && compressResult.useTargetSize) {
+                        quality = compressResult.quality;
+                        // Ensure output is jpeg for compression if original isn't transparent (e.g. png to jpeg with compression)
+                        if (actualFormat !== 'jpeg' && !this.isImageTransparent(canvas)) {
+                             actualFormat = 'jpeg';
+                        }
+                    }
+
+                    // If the original image was PNG or WebP and contained transparency,
+                    // and the target format is not JPEG, preserve transparency.
+                    // If target format IS JPEG, it will lose transparency, which is expected for JPEG.
+                    if (['png', 'webp'].includes(file.type?.split('/')[1]) && actualFormat !== 'jpeg' && this.isImageTransparent(img)) {
+                        // Keep original format for transparency if not converting to JPEG
+                    } else if (actualFormat !== 'jpeg') {
+                        // If it's not JPEG output, and not original transparent, force to PNG for broader support if not specified
+                        // Or simply use the actualFormat determined above
+                    }
+
+                    // Special handling for JPEG quality. Only applies to JPEG output.
+                    const finalQualityForOutput = (actualFormat === 'jpeg' || actualFormat === 'webp') ? quality : undefined;
+                    
+                    const processedUrl = canvas.toDataURL(`image/${actualFormat}`, finalQualityForOutput);
+                    const fileSize = this.getCanvasSizeBytes(canvas, actualFormat, finalQualityForOutput);
                     
                     const originalName = file.name || 'processed';
                     
@@ -1743,6 +1779,29 @@ class ArtisticImageProcessor {
             }
         });
     }
+    
+    // 新增辅助函数：检查图片是否包含透明像素
+    isImageTransparent(imgElement) {
+        if (!imgElement) return false;
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = imgElement.naturalWidth || imgElement.width; // Use naturalWidth for Image objects
+        tempCanvas.height = imgElement.naturalHeight || imgElement.height; // Use naturalHeight for Image objects
+        tempCtx.drawImage(imgElement, 0, 0);
+        try {
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            for (let i = 3; i < imageData.data.length; i += 4) {
+                if (imageData.data[i] < 255) { // If any pixel has alpha less than 255
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.warn("Could not check for transparency, likely due to CORS issues.", e);
+            // If CORS prevents ImageData access, assume not transparent or handle as needed
+            return false; 
+        }
+        return false;
+    }
 
     async applyFormatConversion(canvas, ctx, img) {
         const bgColor = document.getElementById('backgroundColor').value;
@@ -1770,22 +1829,26 @@ class ArtisticImageProcessor {
         // 如果设置了目标大小，进行智能压缩
         if (targetSizeKB > 0) {
             const targetSizeBytes = targetSizeKB * 1024;
-            let finalQuality = await this.findOptimalQuality(canvas, targetSizeBytes, quality);
+            // Pass the original file type to findOptimalQuality to maintain format if possible
+            let originalMimeType = file.type || 'image/png';
+            let finalQuality = await this.findOptimalQuality(canvas, targetSizeBytes, quality, originalMimeType);
             return { quality: finalQuality, targetSizeKB, useTargetSize: true };
         }
         
         return { quality, targetSizeKB: 0, useTargetSize: false };
     }
 
-    async findOptimalQuality(canvas, targetSizeBytes, initialQuality) {
+    async findOptimalQuality(canvas, targetSizeBytes, initialQuality, originalMimeType) {
         let minQuality = 0.1;
         let maxQuality = 1.0;
         let bestQuality = initialQuality;
         let iterations = 0;
         const maxIterations = 8; // 限制迭代次数避免无限循环
 
+        const format = originalMimeType.includes('jpeg') ? 'jpeg' : originalMimeType.includes('png') ? 'png' : 'webp'; // Use original format
+
         // 首先测试初始质量
-        let currentSize = this.getCanvasSizeBytes(canvas, 'jpeg', initialQuality);
+        let currentSize = this.getCanvasSizeBytes(canvas, format, initialQuality);
         
         // 如果初始质量已经满足要求，直接返回
         if (currentSize <= targetSizeBytes) {
@@ -1795,7 +1858,7 @@ class ArtisticImageProcessor {
         // 二分法查找最优质量
         while (iterations < maxIterations && Math.abs(maxQuality - minQuality) > 0.05) {
             const testQuality = (minQuality + maxQuality) / 2;
-            const testSize = this.getCanvasSizeBytes(canvas, 'jpeg', testQuality);
+            const testSize = this.getCanvasSizeBytes(canvas, format, testQuality);
             
             if (testSize <= targetSizeBytes) {
                 // 文件大小符合要求，尝试提高质量
@@ -1810,7 +1873,7 @@ class ArtisticImageProcessor {
         }
 
         // 确保最终质量不会产生过大的文件
-        const finalSize = this.getCanvasSizeBytes(canvas, 'jpeg', bestQuality);
+        const finalSize = this.getCanvasSizeBytes(canvas, format, bestQuality);
         if (finalSize > targetSizeBytes && bestQuality > 0.1) {
             bestQuality = Math.max(0.1, bestQuality - 0.1);
         }
@@ -1819,7 +1882,9 @@ class ArtisticImageProcessor {
     }
 
     getCanvasSizeBytes(canvas, format, quality) {
-        const dataURL = canvas.toDataURL(`image/${format}`, quality);
+        // Use default quality for PNG as it's lossless, unless explicitly converting to lossy WebP
+        const actualQuality = (format === 'png' || format === 'webp' && quality === undefined) ? 1.0 : quality;
+        const dataURL = canvas.toDataURL(`image/${format}`, actualQuality);
         const base64String = dataURL.split(',')[1];
         return Math.round(base64String.length * 0.75); // Base64到字节的转换
     }

@@ -11,18 +11,15 @@
 </head>
 <body class="impressionist-bg">
     <div class="container mx-auto px-4 py-8 max-w-7xl">
-        <!-- 艺术化头部 -->
         <header class="text-center mb-8 relative">
             <div class="van-gogh-swirl"></div>
             <div class="relative z-10">
-                <!-- 主标题 -->
                 <div class="mb-6">
                     <h1 class="serif-font text-2xl md:text-3xl font-bold mb-2" style="color: #4A4A4A; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">
                         🍎 赛博小熊猫Loki的图片工具箱
                     </h1>
                     <div class="w-32 h-1 mx-auto bg-gradient-to-r from-macaron-lavender via-macaron-mint to-macaron-peach rounded-full"></div>
                 </div>
-                <!-- 副标题 -->
                 <h2 class="serif-font text-4xl md:text-5xl font-bold mb-4" style="color: #4A7C7E; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">
                     🎨 Loki's Digital Atelier
                 </h2>
@@ -34,11 +31,9 @@
             </div>
         </header>
 
-        <!-- 功能选择标签 - 艺术化设计 -->
         <div class="flex justify-center mb-8">
             <div class="glass-effect rounded-2xl p-2 shadow-xl">
                 <div class="grid grid-cols-4 gap-2">
-                    <!-- 第一行 -->
                     <button id="convertTab" class="tab-btn active px-6 py-3 rounded-xl font-medium transition-all text-sm relative">
                         🔄 格式转换
                     </button>
@@ -51,7 +46,6 @@
                     <button id="watermarkTab" class="tab-btn px-6 py-3 rounded-xl font-medium transition-all text-sm">
                         💧 水印处理
                     </button>
-                    <!-- 第二行 -->
                     <button id="filterTab" class="tab-btn px-6 py-3 rounded-xl font-medium transition-all text-sm">
                         🎨 艺术滤镜
                     </button>
@@ -68,7 +62,6 @@
             </div>
         </div>
 
-        <!-- 文件上传区域 - 艺术化设计 -->
         <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8 relative overflow-hidden">
             <div class="section-header">
                 <h2 class="serif-font text-2xl font-semibold text-morandi-deep">Upload Your Masterpiece</h2>
@@ -92,7 +85,6 @@
                 </button>
             </div>
 
-            <!-- 文件列表 -->
             <div id="fileList" class="hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="serif-font text-xl font-medium text-morandi-deep">已选择的文件 (<span id="fileCount">0</span>)</h3>
@@ -101,12 +93,10 @@
                     </button>
                 </div>
                 <div id="fileItems" class="space-y-3 max-h-48 overflow-y-auto">
-                    <!-- 文件项目将在这里动态添加 -->
-                </div>
+                    </div>
             </div>
         </div>
 
-        <!-- 格式转换面板 -->
         <div id="convertPanel" class="tab-panel">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -144,7 +134,6 @@
             </div>
         </div>
 
-        <!-- 压缩优化面板 -->
         <div id="compressPanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -184,7 +173,6 @@
             </div>
         </div>
 
-        <!-- 尺寸调整面板 -->
         <div id="resizePanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -194,7 +182,6 @@
                     </h2>
                 </div>
                 
-                <!-- 操作类型选择 -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-morandi-deep mb-3">操作类型</label>
                     <div class="flex space-x-6">
@@ -209,7 +196,6 @@
                     </div>
                 </div>
 
-                <!-- 尺寸调整选项 -->
                 <div id="resizeOptions" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label class="block text-sm font-medium text-morandi-deep mb-3">调整方式</label>
@@ -236,9 +222,7 @@
                     </div>
                 </div>
 
-                <!-- 裁剪选项 -->
                 <div id="cropOptions" class="hidden">
-                    <!-- 裁剪模式选择 -->
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-morandi-deep mb-3">裁剪方式</label>
                         <div class="flex space-x-6">
@@ -253,7 +237,6 @@
                         </div>
                     </div>
 
-                    <!-- 手动拖选裁剪 -->
                     <div id="manualCropOptions" class="mb-6">
                         <div class="p-6 art-nouveau-border rounded-2xl bg-gradient-to-br from-macaron-mint to-macaron-lavender">
                             <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
@@ -261,7 +244,6 @@
                                 <span class="ml-2 text-sm font-normal text-morandi-shadow">Manual Crop Selection</span>
                             </h4>
                             
-                            <!-- 图像预览和裁剪区域 -->
                             <div id="cropCanvas" class="mb-6 text-center">
                                 <div class="morandi-card rounded-2xl p-6">
                                     <div id="cropCanvasContainer" class="relative inline-block bg-white rounded-xl shadow-inner border-2 border-dashed border-morandi-sage">
@@ -276,7 +258,6 @@
                                 </div>
                             </div>
 
-                            <!-- 裁剪预设和约束 -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
                                     <label class="block text-sm font-medium text-morandi-deep mb-3">宽高比约束</label>
@@ -308,7 +289,6 @@
                                 </div>
                             </div>
 
-                            <!-- 裁剪信息显示 -->
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                 <div class="p-3 bg-gradient-to-br from-white to-morandi-pearl rounded-xl text-center">
                                     <div class="text-xs text-morandi-shadow">X坐标</div>
@@ -328,7 +308,6 @@
                                 </div>
                             </div>
 
-                            <!-- 操作按钮 -->
                             <div class="flex space-x-4">
                                 <button id="resetCropSelection" class="btn-secondary px-6 py-3 rounded-xl font-medium transition-all flex items-center" disabled>
                                     🔄 重置选择
@@ -360,7 +339,6 @@
                         </div>
                     </div>
 
-                    <!-- 预设尺寸裁剪 -->
                     <div id="presetCropOptions" class="hidden">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
@@ -400,7 +378,6 @@
             </div>
         </div>
 
-        <!-- 水印处理面板 -->
         <div id="watermarkPanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -410,7 +387,6 @@
                     </h2>
                 </div>
                 
-                <!-- 操作类型选择 -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-morandi-deep mb-3">操作类型</label>
                     <div class="flex space-x-6">
@@ -425,7 +401,6 @@
                     </div>
                 </div>
 
-                <!-- 添加水印选项 -->
                 <div id="addWatermarkOptions" class="space-y-6 mb-6">
                     <div>
                         <label class="block text-sm font-medium text-morandi-deep mb-3">水印类型</label>
@@ -467,7 +442,6 @@
                     </div>
                 </div>
 
-                <!-- 去除水印选项 -->
                 <div id="removeWatermarkOptions" class="hidden space-y-6 mb-6">
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-morandi-deep mb-3">去除方式</label>
@@ -483,7 +457,6 @@
                         </div>
                     </div>
 
-                    <!-- 自动检测选项 -->
                     <div id="autoRemoveOptions" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -505,7 +478,6 @@
                         </div>
                     </div>
 
-                    <!-- 手动涂抹选项 -->
                     <div id="manualRemoveOptions" class="hidden space-y-6">
                         <div class="p-6 art-nouveau-border rounded-2xl bg-gradient-to-br from-macaron-mint to-macaron-lavender">
                             <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
@@ -513,7 +485,6 @@
                                 <span class="ml-2 text-sm font-normal text-morandi-shadow">Manual Watermark Removal</span>
                             </h4>
                             
-                            <!-- 图像预览和涂抹区域 -->
                             <div id="watermarkCanvas" class="mb-6 text-center">
                                 <div class="morandi-card rounded-2xl p-6">
                                     <div id="canvasContainer" class="relative inline-block bg-white rounded-xl shadow-inner border-2 border-dashed border-morandi-sage">
@@ -528,7 +499,6 @@
                                 </div>
                             </div>
 
-                            <!-- 涂抹工具选项 -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                 <div>
                                     <label class="block text-sm font-medium text-morandi-deep mb-3">画笔大小</label>
@@ -551,7 +521,6 @@
                                 </div>
                             </div>
 
-                            <!-- 操作按钮 -->
                             <div class="flex space-x-4">
                                 <button id="clearMask" class="btn-secondary px-6 py-3 rounded-xl font-medium transition-all flex items-center" disabled>
                                     🗑️ 清除涂抹
@@ -590,7 +559,6 @@
             </div>
         </div>
 
-        <!-- 艺术滤镜面板 -->
         <div id="filterPanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -636,7 +604,6 @@
             </div>
         </div>
 
-        <!-- 一键加底面板 -->
         <div id="backgroundPanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -703,7 +670,6 @@
             </div>
         </div>
 
-        <!-- 图像拼接面板 -->
         <div id="splicePanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -761,7 +727,6 @@
             </div>
         </div>
 
-        <!-- 图像分析面板 -->
         <div id="analyzePanel" class="tab-panel hidden">
             <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
                 <div class="section-header">
@@ -805,17 +770,14 @@
                     开始分析图像
                 </button>
                 
-                <!-- 分析结果显示区域 -->
                 <div id="analyzeResults" class="hidden mt-8">
                     <h3 class="serif-font text-xl font-medium mb-6 text-morandi-deep">分析结果</h3>
                     <div id="analyzeResultsContent" class="space-y-4">
-                        <!-- 分析结果将在这里显示 -->
-                    </div>
+                        </div>
                 </div>
             </div>
         </div>
 
-        <!-- 批量操作面板 -->
         <div class="morandi-card rounded-3xl shadow-2xl p-8 mb-8">
             <div class="section-header">
                 <h2 class="serif-font text-2xl font-semibold text-morandi-deep flex items-center">
@@ -856,7 +818,64 @@
             </div>
         </div>
 
-        <!-- 处理进度 -->
+        <div id="batchSelectModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm hidden">
+            <div class="max-w-xl w-full mx-4">
+                <div class="morandi-card rounded-3xl overflow-hidden shadow-2xl">
+                    <div class="p-6 border-b border-morandi-cloud">
+                        <div class="flex justify-between items-center">
+                            <h3 class="serif-font text-xl font-medium text-morandi-deep">选择批量操作项</h3>
+                            <button onclick="app.closeBatchSelectModal()" 
+                                    class="text-morandi-shadow hover:text-morandi-deep transition-colors p-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="convert" class="mr-3 accent-morandi-sage" checked>
+                                <span class="text-morandi-deep">🔄 格式转换</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="compress" class="mr-3 accent-morandi-sage" checked>
+                                <span class="text-morandi-deep">📦 压缩优化</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="resize" class="mr-3 accent-morandi-sage" checked>
+                                <span class="text-morandi-deep">📏 尺寸调整</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="watermark" class="mr-3 accent-morandi-sage" checked>
+                                <span class="text-morandi-deep">💧 水印处理</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="filter" class="mr-3 accent-morandi-sage" checked>
+                                <span class="text-morandi-deep">🎨 艺术滤镜</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="background" class="mr-3 accent-morandi-sage">
+                                <span class="text-morandi-deep">🖼️ 一键加底</span>
+                            </label>
+                             <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="splice" class="mr-3 accent-morandi-sage">
+                                <span class="text-morandi-deep">🧩 图像拼接</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" name="batchOperation" value="analyze" class="mr-3 accent-morandi-sage">
+                                <span class="text-morandi-deep">🔍 图像分析</span>
+                            </label>
+                        </div>
+                        <div class="flex justify-end space-x-4">
+                            <button onclick="app.closeBatchSelectModal()" class="btn-secondary px-6 py-3 rounded-xl font-medium">取消</button>
+                            <button onclick="app.confirmBatchOperations()" class="btn-primary px-6 py-3 rounded-xl font-medium">确认并开始</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="progressSection" class="morandi-card rounded-3xl shadow-2xl p-8 mb-8 hidden">
             <div class="section-header">
                 <h3 class="serif-font text-xl font-semibold text-morandi-deep">处理进度</h3>
@@ -887,7 +906,6 @@
             </div>
         </div>
 
-        <!-- 结果展示 -->
         <div id="resultsSection" class="morandi-card rounded-3xl shadow-2xl p-8 hidden">
             <div class="section-header mb-6">
                 <div class="flex justify-between items-center">
@@ -903,11 +921,9 @@
                 </div>
             </div>
             <div id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- 结果项目将在这里动态添加 -->
-            </div>
+                </div>
         </div>
 
-        <!-- 底部艺术装饰 -->
         <footer class="text-center mt-12">
             <div class="artistic-divider"></div>
             <p class="serif-font text-morandi-shadow text-sm italic">
