@@ -8,29 +8,141 @@ class ArtisticImageProcessor {
         this.watermarkMask = [];
         this.watermarkMaskHistory = [];
         this.isDrawing = false;
-        this.currentImage = null; // Stores image for interactive editing (watermark/crop)
+        this.currentImage = null; 
         
-        // Cropping related properties
         this.cropCanvas = null;
         this.cropSelection = null;
         this.isDragging = false;
-        this.dragType = null; // 'move', 'resize-tl', 'resize-tr', 'resize-bl', 'resize-br'
+        this.dragType = null; 
         this.dragStart = { x: 0, y: 0 };
-        this.currentCropImage = null; // Stores image for interactive cropping
-        this.manualCropParams = null; // Stores parameters set by manual crop selection
+        this.currentCropImage = null; 
+        this.manualCropParams = null; 
+
+        // 绑定所有可能作为回调或需要保留 'this' 上下文的方法
+        this.init = this.init.bind(this);
+        this.setupEventListeners = this.setupEventListeners.bind(this);
+        this.setupDragAndDrop = this.setupDragAndDrop.bind(this);
+        this.setupRangeInputs = this.setupRangeInputs.bind(this);
+        this.setupArtisticAnimations = this.setupArtisticAnimations.bind(this);
+        this.setupDragAndDropReorder = this.setupDragAndDropReorder.bind(this);
+        this.switchTab = this.switchTab.bind(this);
+        this.handleFileSelect = this.handleFileSelect.bind(this);
+        this.addFiles = this.addFiles.bind(this);
+        this.clearFiles = this.clearFiles.bind(this);
+        this.renderFileList = this.renderFileList.bind(this);
+        this.removeFile = this.removeFile.bind(this);
+        this.formatFileSize = this.formatFileSize.bind(this);
+        this.updateUI = this.updateUI.bind(this);
+        this.updateResizeInputs = this.updateResizeInputs.bind(this);
+        this.updateWatermarkInputs = this.updateWatermarkInputs.bind(this);
+        this.updateResizeTypeInputs = this.updateResizeTypeInputs.bind(this);
+        this.updateCropModeInputs = this.updateCropModeInputs.bind(this);
+        this.updateAspectRatioInputs = this.updateAspectRatioInputs.bind(this);
+        this.updateWatermarkActionInputs = this.updateWatermarkActionInputs.bind(this);
+        this.updateRemoveMethodInputs = this.updateRemoveMethodInputs.bind(this);
+        this.setupWatermarkCanvas = this.setupWatermarkCanvas.bind(this);
+        this.setupCropCanvas = this.setupCropCanvas.bind(this);
+        this.loadImageForCropEditing = this.loadImageForCropEditing.bind(this);
+        this.setupCropCanvasEvents = this.setupCropCanvasEvents.bind(this);
+        this.startCropDrag = this.startCropDrag.bind(this);
+        this.handleCropDrag = this.handleCropDrag.bind(this);
+        this.stopCropDrag = this.stopCropDrag.bind(this);
+        this.getCropDragType = this.getCropDragType.bind(this);
+        this.isInHandle = this.isInHandle.bind(this);
+        this.updateCursorStyle = this.updateCursorStyle.bind(this);
+        this.resizeSelection = this.resizeSelection.bind(this);
+        this.applyCropConstraints = this.applyCropConstraints.bind(this);
+        this.roundToNearestPixel = this.roundToNearestPixel.bind(this);
+        this.updateCropConstraints = this.updateCropConstraints.bind(this);
+        this.drawCropSelection = this.drawCropSelection.bind(this);
+        this.drawHandle = this.drawHandle.bind(this);
+        this.updateCropDisplay = this.updateCropDisplay.bind(this);
+        this.updateCropButtons = this.updateCropButtons.bind(this);
+        this.resetCropSelection = this.resetCropSelection.bind(this);
+        this.previewCropSelection = this.previewCropSelection.bind(this);
+        this.generateCropPreview = this.generateCropPreview.bind(this);
+        this.applyCropSelection = this.applyCropSelection.bind(this);
+        this.loadImageForWatermarkEditing = this.loadImageForWatermarkEditing.bind(this);
+        this.calculateDisplaySize = this.calculateDisplaySize.bind(this);
+        this.setupCanvasEvents = this.setupCanvasEvents.bind(this);
+        this.startDrawing = this.startDrawing.bind(this);
+        this.draw = this.draw.bind(this);
+        this.stopDrawing = this.stopDrawing.bind(this);
+        this.clearWatermarkMask = this.clearWatermarkMask.bind(this);
+        this.undoWatermarkMask = this.undoWatermarkMask.bind(this);
+        this.redrawWatermarkCanvas = this.redrawWatermarkCanvas.bind(this);
+        this.previewWatermarkRemoval = this.previewWatermarkRemoval.bind(this);
+        this.processWatermarkRemovalPreview = this.processWatermarkRemovalPreview.bind(this);
+        this.applyRepairToRegion = this.applyRepairToRegion.bind(this);
+        this.applyInpaintRepair = this.applyInpaintRepair.bind(this);
+        this.applyBlurRepair = this.applyBlurRepair.bind(this);
+        this.applyCloneRepair = this.applyCloneRepair.bind(this);
+        this.applyPatchRepair = this.applyPatchRepair.bind(this);
+        this.getWeightedAverageColor = this.getWeightedAverageColor.bind(this);
+        this.getGaussianBlurColor = this.getGaussianBlurColor.bind(this);
+        this.findNearestSourcePixel = this.findNearestSourcePixel.bind(this);
+        this.updateBackgroundInputs = this.updateBackgroundInputs.bind(this);
+        this.updateSpliceInputs = this.updateSpliceInputs.bind(this);
+        this.applyFilterPreset = this.applyFilterPreset.bind(this);
+        this.startProcessing = this.startProcessing.bind(this);
+        this.openBatchSelectModal = this.openBatchSelectModal.bind(this);
+        this.closeBatchSelectModal = this.closeBatchSelectModal.bind(this);
+        this.confirmBatchOperations = this.confirmBatchOperations.bind(this);
+        this.processSpliceBatch = this.processSpliceBatch.bind(this);
+        this.getOperationName = this.getOperationName.bind(this);
+        this.processFile = this.processFile.bind(this);
+        this.isImageTransparent = this.isImageTransparent.bind(this);
+        this.applyFormatConversion = this.applyFormatConversion.bind(this);
+        this.applyCompression = this.applyCompression.bind(this);
+        this.findOptimalQuality = this.findOptimalQuality.bind(this);
+        this.getCanvasSizeBytes = this.getCanvasSizeBytes.bind(this);
+        this.applyResize = this.applyResize.bind(this);
+        this.applyResizeTransform = this.applyResizeTransform.bind(this);
+        this.applyCrop = this.applyCrop.bind(this);
+        this.applyWatermark = this.applyWatermark.bind(this);
+        this.addWatermark = this.addWatermark.bind(this);
+        this.removeWatermark = this.removeWatermark.bind(this);
+        this.removeWatermarkAuto = this.removeWatermarkAuto.bind(this);
+        this.removeWatermarkManual = this.removeWatermarkManual.bind(this);
+        this.detectWatermarkRegions = this.detectWatermarkRegions.bind(this);
+        this.hasWatermarkPattern = this.hasWatermarkPattern.bind(this);
+        this.repairRegion = this.repairRegion.bind(this);
+        this.getAverageColor = this.getAverageColor.bind(this);
+        this.applyFilter = this.applyFilter.bind(this);
+        this.applyBackground = this.applyBackground.bind(this);
+        this.processSplice = this.processSplice.bind(this);
+        this.createSplicedImage = this.createSplicedImage.bind(this);
+        this.analyzeImage = this.analyzeImage.bind(this);
+        this.extractDominantColors = this.extractDominantColors.bind(this);
+        this.assessImageQuality = this.assessImageQuality.bind(this);
+        this.displayAnalysisResults = this.displayAnalysisResults.bind(this);
+        this.loadImage = this.loadImage.bind(this);
+        this.showProgress = this.showProgress.bind(this);
+        this.hideProgress = this.hideProgress.bind(this);
+        this.updateProgress = this.updateProgress.bind(this);
+        this.showResults = this.showResults.bind(this);
+        this.createResultItem = this.createResultItem.bind(this);
+        this.downloadSingle = this.downloadSingle.bind(this);
+        this.downloadImage = this.downloadImage.bind(this);
+        this.downloadAll = this.downloadAll.bind(this);
+        this.dataURLtoBlob = this.dataURLtoBlob.bind(this);
+        this.previewImage = this.previewImage.bind(this);
+        this.previewBatch = this.previewBatch.bind(this);
+        this.resetAllSettings = this.resetAllSettings.bind(this);
+        this.sleep = this.sleep.bind(this);
     }
 
     init() {
         try {
-            this.setupEventListeners();
+            // All event listeners and setups are now guaranteed to have 'this' correctly bound
+            this.setupEventListeners(); 
             this.setupDragAndDrop();
             this.setupRangeInputs();
             this.setupArtisticAnimations();
-            this.setupDragAndDropReorder(); // Initialize drag-and-drop for batch operation reordering
-            console.log('🎨 Loki\'s Digital Atelier 初始化成功！', this); // Add debug log for 'this'
+            this.setupDragAndDropReorder(); 
+            console.log('🎨 Loki\'s Digital Atelier 初始化成功！', this); 
         } catch (error) {
             console.error('Loki\'s Digital Atelier 初始化失败:', error);
-            // 确保这里能给用户一个可见的提示
             const errorDiv = document.createElement('div');
             errorDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
             errorDiv.textContent = '应用初始化失败，请检查浏览器控制台（F12）了解详情。';
@@ -70,14 +182,14 @@ class ArtisticImageProcessor {
         ['convert', 'compress', 'resize', 'watermark', 'filter', 'background', 'splice', 'analyze'].forEach(mode => {
             const tabElement = getElement(mode + 'Tab');
             if (tabElement) {
-                tabElement.addEventListener('click', this.switchTab.bind(this, mode)); // Explicitly bind 'this'
+                tabElement.addEventListener('click', this.switchTab.bind(this, mode)); 
             }
         });
 
         // File selection
         const fileInput = getElement('fileInput');
         if (fileInput) {
-            fileInput.addEventListener('change', this.handleFileSelect.bind(this)); // Explicitly bind 'this'
+            fileInput.addEventListener('change', this.handleFileSelect.bind(this)); 
         }
         
         const uploadButton = document.querySelector('#uploadArea button'); 
@@ -91,7 +203,7 @@ class ArtisticImageProcessor {
         // Clear files
         const clearFilesBtn = getElement('clearFiles');
         if (clearFilesBtn) {
-            clearFilesBtn.addEventListener('click', this.clearFiles.bind(this)); // Explicitly bind 'this'
+            clearFilesBtn.addEventListener('click', this.clearFiles.bind(this)); 
         }
 
         // Individual process buttons
@@ -109,90 +221,90 @@ class ArtisticImageProcessor {
         processButtons.forEach(({ id, mode }) => {
             const button = getElement(id);
             if (button) {
-                button.addEventListener('click', this.startProcessing.bind(this, mode)); // Explicitly bind 'this'
+                button.addEventListener('click', this.startProcessing.bind(this, mode)); 
             }
         });
 
         // Batch operations
         const batchAllBtn = getElement('batchAll');
         if (batchAllBtn) {
-            batchAllBtn.addEventListener('click', this.openBatchSelectModal.bind(this)); // Explicitly bind 'this'
+            batchAllBtn.addEventListener('click', this.openBatchSelectModal.bind(this)); 
         }
         
         const previewBatchBtn = getElement('previewBatch');
         if (previewBatchBtn) {
-            previewBatchBtn.addEventListener('click', this.previewBatch.bind(this)); // Explicitly bind 'this'
+            previewBatchBtn.addEventListener('click', this.previewBatch.bind(this)); 
         }
         
         const resetAllBtn = getElement('resetAll');
         if (resetAllBtn) {
-            resetAllBtn.addEventListener('click', this.resetAllSettings.bind(this)); // Explicitly bind 'this'
+            resetAllBtn.addEventListener('click', this.resetAllSettings.bind(this)); 
         }
 
         // Result actions
         const downloadAllBtn = getElement('downloadAll');
         if (downloadAllBtn) {
-            downloadAllBtn.addEventListener('click', this.downloadAll.bind(this)); // Explicitly bind 'this'
+            downloadAllBtn.addEventListener('click', this.downloadAll.bind(this)); 
         }
         
         const clearResultsBtn = getElement('clearResults');
         if (clearResultsBtn) {
-            clearResultsBtn.addEventListener('click', this.clearResults.bind(this)); // Explicitly bind 'this'
+            clearResultsBtn.addEventListener('click', this.clearResults.bind(this)); 
         }
 
         // Filter presets
         document.querySelectorAll('.filter-preset').forEach(btn => {
-            btn.addEventListener('click', (e) => this.applyFilterPreset(e.target.dataset.filter));
+            btn.addEventListener('click', this.applyFilterPreset.bind(this, btn.dataset.filter)); // Directly pass data-filter value
         });
 
         // Mode-specific input updates
         const resizeModeSelect = getElement('resizeMode');
         if (resizeModeSelect) {
-            resizeModeSelect.addEventListener('change', this.updateResizeInputs.bind(this)); // Explicitly bind 'this'
+            resizeModeSelect.addEventListener('change', this.updateResizeInputs.bind(this)); 
         }
         
         const watermarkTypeSelect = getElement('watermarkType');
         if (watermarkTypeSelect) {
-            watermarkTypeSelect.addEventListener('change', this.updateWatermarkInputs.bind(this)); // Explicitly bind 'this'
+            watermarkTypeSelect.addEventListener('change', this.updateWatermarkInputs.bind(this)); 
         }
         
         // New functionality event listeners (using querySelectorAll for robustness)
         document.querySelectorAll('input[name="resizeType"]').forEach(radio => {
-            radio.addEventListener('change', this.updateResizeTypeInputs.bind(this)); // Explicitly bind 'this'
+            radio.addEventListener('change', this.updateResizeTypeInputs.bind(this)); 
         });
         document.querySelectorAll('input[name="cropMode"]').forEach(radio => {
-            radio.addEventListener('change', this.updateCropModeInputs.bind(this)); // Explicitly bind 'this'
+            radio.addEventListener('change', this.updateCropModeInputs.bind(this)); 
         });
         document.querySelectorAll('input[name="watermarkAction"]').forEach(radio => {
-            radio.addEventListener('change', this.updateWatermarkActionInputs.bind(this)); // Explicitly bind 'this'
+            radio.addEventListener('change', this.updateWatermarkActionInputs.bind(this)); 
         });
         document.querySelectorAll('input[name="removeMethod"]').forEach(radio => {
-            radio.addEventListener('change', this.updateRemoveMethodInputs.bind(this)); // Explicitly bind 'this'
+            radio.addEventListener('change', this.updateRemoveMethodInputs.bind(this)); 
         });
         const backgroundTypeSelect = getElement('backgroundType');
         if (backgroundTypeSelect) {
-            backgroundTypeSelect.addEventListener('change', this.updateBackgroundInputs.bind(this)); // Explicitly bind 'this'
+            backgroundTypeSelect.addEventListener('change', this.updateBackgroundInputs.bind(this)); 
         }
         
         const spliceModeSelect = getElement('spliceMode');
         if (spliceModeSelect) {
-            spliceModeSelect.addEventListener('change', this.updateSpliceInputs.bind(this)); // Explicitly bind 'this'
+            spliceModeSelect.addEventListener('change', this.updateSpliceInputs.bind(this)); 
         }
         
         // Watermark brush/mask events
         const clearMaskBtn = getElement('clearMask');
         if (clearMaskBtn) {
-            clearMaskBtn.addEventListener('click', this.clearWatermarkMask.bind(this)); // Explicitly bind 'this'
+            clearMaskBtn.addEventListener('click', this.clearWatermarkMask.bind(this)); 
         }
         
         const previewRemovalBtn = getElement('previewRemoval');
         if (previewRemovalBtn) {
-            previewRemovalBtn.addEventListener('click', this.previewWatermarkRemoval.bind(this)); // Explicitly bind 'this'
+            previewRemovalBtn.addEventListener('click', this.previewWatermarkRemoval.bind(this)); 
         }
         
         const undoMaskBtn = getElement('undoMask');
         if (undoMaskBtn) {
-            undoMaskBtn.addEventListener('click', this.undoWatermarkMask.bind(this)); // Explicitly bind 'this'
+            undoMaskBtn.addEventListener('click', this.undoWatermarkMask.bind(this)); 
         }
         
         // Color preset buttons
@@ -206,22 +318,22 @@ class ArtisticImageProcessor {
         // Crop events
         const aspectRatioSelect = getElement('aspectRatioConstraint');
         if (aspectRatioSelect) {
-            aspectRatioSelect.addEventListener('change', this.updateAspectRatioInputs.bind(this)); // Explicitly bind 'this'
+            aspectRatioSelect.addEventListener('change', this.updateAspectRatioInputs.bind(this)); 
         }
         
         const resetCropBtn = getElement('resetCropSelection');
         if (resetCropBtn) {
-            resetCropBtn.addEventListener('click', this.resetCropSelection.bind(this)); // Explicitly bind 'this'
+            resetCropBtn.addEventListener('click', this.resetCropSelection.bind(this)); 
         }
         
         const previewCropBtn = getElement('previewCrop');
         if (previewCropBtn) {
-            previewCropBtn.addEventListener('click', this.previewCropSelection.bind(this)); // Explicitly bind 'this'
+            previewCropBtn.addEventListener('click', this.previewCropSelection.bind(this)); 
         }
         
         const applyCropBtn = getElement('applyCropSelection');
         if (applyCropBtn) {
-            applyCropBtn.addEventListener('click', this.applyCropSelection.bind(this)); // Explicitly bind 'this'
+            applyCropBtn.addEventListener('click', this.applyCropSelection.bind(this)); 
         }
     }
 
@@ -1599,7 +1711,6 @@ class ArtisticImageProcessor {
         if (this.isProcessing || this.files.length === 0) return;
 
         this.isProcessing = true;
-        console.log("startProcessing called, this:", this); // Debugging: check 'this' here
         this.showProgress(); 
         
         const results = [];
@@ -1670,7 +1781,6 @@ class ArtisticImageProcessor {
         }
 
         this.isProcessing = true;
-        console.log("confirmBatchOperations called, this:", this); // Debugging: check 'this' here
         this.showProgress(); 
         
         const finalResults = []; 
@@ -1828,7 +1938,6 @@ class ArtisticImageProcessor {
                 const loadedImage = await this.loadImage(file); 
                 img.src = loadedImage.src; 
                 
-                // Using an arrow function for img.onload to correctly bind 'this'
                 img.onload = async () => {
                     canvas.width = img.naturalWidth; 
                     canvas.height = img.naturalHeight;
@@ -1920,7 +2029,6 @@ class ArtisticImageProcessor {
                     });
                 };
 
-                // This onerror is for when img.src fails to load the image data
                 img.onerror = (e) => {
                     console.error(`Image loading failed within processFile for mode '${mode}':`, e, "Input file:", file);
                     const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
@@ -1938,7 +2046,6 @@ class ArtisticImageProcessor {
                 };
 
             } catch (error) {
-                // This catch is for errors *before* img.onload or in loadImage itself
                 console.error(`Unhandled error during processFile for mode '${mode}':`, error, "Input file:", file);
                 const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
                 const originalFormatForError = file.type ? file.type.split('/')[1] : (file.format || 'unknown');
