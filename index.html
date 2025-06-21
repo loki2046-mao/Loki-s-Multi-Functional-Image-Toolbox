@@ -90,7 +90,7 @@
                     <span class="text-sm text-van-gogh-blue font-medium">✨ 专业级图像处理，保持最高品质</span><br>
                     <span class="text-sm text-monet-lily font-medium">🎯 智能错误处理，确保处理稳定性</span>
                 </p>
-                <input type="file" id="fileInput" class="hidden" multiple accept="image/*">
+                <input type="file" id="fileInput" name="fileInput" class="hidden" multiple accept="image/*">
                 <button class="btn-primary px-8 py-4 rounded-2xl font-medium transition-all text-white shadow-lg">
                     <span class="relative z-10">选择文件</span>
                 </button>
@@ -118,21 +118,21 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">转换格式</label>
-                        <select id="targetFormat" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="targetFormat" class="block text-sm font-medium text-morandi-deep mb-3">转换格式</label>
+                        <select id="targetFormat" name="targetFormat" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="png">PNG - 高品质透明</option>
                             <option value="jpeg">JPEG - 高压缩比</option>
                             <option value="webp">WebP - 现代格式</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">JPEG质量</label>
-                        <input type="range" id="jpegQuality" min="10" max="100" value="85" class="range-slider w-full">
+                        <label for="jpegQuality" class="block text-sm font-medium text-morandi-deep mb-3">JPEG质量</label>
+                        <input type="range" id="jpegQuality" name="jpegQuality" min="10" max="100" value="85" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="qualityValue">85</span>%</div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">背景色</label>
-                        <select id="backgroundColor" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="backgroundColor" class="block text-sm font-medium text-morandi-deep mb-3">背景色</label>
+                        <select id="backgroundColor" name="backgroundColor" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="transparent">透明</option>
                             <option value="white">纯白</option>
                             <option value="black">纯黑</option>
@@ -155,8 +155,8 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">压缩级别</label>
-                        <select id="compressLevel" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="compressLevel" class="block text-sm font-medium text-morandi-deep mb-3">压缩级别</label>
+                        <select id="compressLevel" name="compressLevel" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="light">轻度压缩 (90%)</option>
                             <option value="medium" selected>中度压缩 (70%)</option>
                             <option value="heavy">重度压缩 (50%)</option>
@@ -164,13 +164,13 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">自定义质量</label>
-                        <input type="range" id="customQuality" min="10" max="100" value="70" class="range-slider w-full">
+                        <label for="customQuality" class="block text-sm font-medium text-morandi-deep mb-3">自定义质量</label>
+                        <input type="range" id="customQuality" name="customQuality" min="10" max="100" value="70" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="customQualityValue">70</span>%</div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">目标大小</label>
-                        <select id="targetSize" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="targetSize" class="block text-sm font-medium text-morandi-deep mb-3">目标大小</label>
+                        <select id="targetSize" name="targetSize" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="">无限制</option>
                             <option value="100">≤ 100KB</option>
                             <option value="500">≤ 500KB</option>
@@ -179,8 +179,8 @@
                     </div>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-morandi-deep mb-3">压缩后输出格式</label>
-                    <select id="compressOutputFormat" class="select-field w-full rounded-xl px-4 py-3">
+                    <label for="compressOutputFormat" class="block text-sm font-medium text-morandi-deep mb-3">压缩后输出格式</label>
+                    <select id="compressOutputFormat" name="compressOutputFormat" class="select-field w-full rounded-xl px-4 py-3">
                         <option value="original">保持原格式</option>
                         <option value="jpeg">转换为JPEG</option>
                         <option value="png">转换为PNG</option>
@@ -205,12 +205,12 @@
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-morandi-deep mb-3">操作类型</label>
                     <div class="flex space-x-6">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="resizeType" value="resize" checked class="mr-3 accent-morandi-sage">
+                        <label for="resizeTypeResize" class="flex items-center cursor-pointer">
+                            <input type="radio" id="resizeTypeResize" name="resizeType" value="resize" checked class="mr-3 accent-morandi-sage">
                             <span class="text-morandi-deep">尺寸调整</span>
                         </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="resizeType" value="crop" class="mr-3 accent-morandi-sage">
+                        <label for="resizeTypeCrop" class="flex items-center cursor-pointer">
+                            <input type="radio" id="resizeTypeCrop" name="resizeType" value="crop" class="mr-3 accent-morandi-sage">
                             <span class="text-morandi-deep">图像裁剪</span>
                         </label>
                     </div>
@@ -218,8 +218,8 @@
 
                 <div id="resizeOptions" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">调整方式</label>
-                        <select id="resizeMode" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="resizeMode" class="block text-sm font-medium text-morandi-deep mb-3">调整方式</label>
+                        <select id="resizeMode" name="resizeMode" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="percentage">百分比缩放</option>
                             <option value="fixed">固定尺寸</option>
                             <option value="width">固定宽度</option>
@@ -227,18 +227,18 @@
                         </select>
                     </div>
                     <div class="flex items-center">
-                        <label class="flex items-center cursor-pointer text-morandi-deep">
-                            <input type="checkbox" id="keepAspectRatio" checked class="mr-3 accent-morandi-sage">
+                        <label for="keepAspectRatio" class="flex items-center cursor-pointer text-morandi-deep">
+                            <input type="checkbox" id="keepAspectRatio" name="keepAspectRatio" checked class="mr-3 accent-morandi-sage">
                             保持宽高比
                         </label>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">宽度/百分比</label>
-                        <input type="number" id="targetWidth" placeholder="800" class="input-field w-full rounded-xl px-4 py-3">
+                        <label for="targetWidth" class="block text-sm font-medium text-morandi-deep mb-3">宽度/百分比</label>
+                        <input type="number" id="targetWidth" name="targetWidth" placeholder="800" class="input-field w-full rounded-xl px-4 py-3">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">高度</label>
-                        <input type="number" id="targetHeight" placeholder="600" class="input-field w-full rounded-xl px-4 py-3">
+                        <label for="targetHeight" class="block text-sm font-medium text-morandi-deep mb-3">高度</label>
+                        <input type="number" id="targetHeight" name="targetHeight" placeholder="600" class="input-field w-full rounded-xl px-4 py-3">
                     </div>
                 </div>
 
@@ -246,12 +246,12 @@
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-morandi-deep mb-3">裁剪方式</label>
                         <div class="flex space-x-6">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="radio" name="cropMode" value="manual" checked class="mr-3 accent-morandi-sage">
+                            <label for="cropModeManual" class="flex items-center cursor-pointer">
+                                <input type="radio" id="cropModeManual" name="cropMode" value="manual" checked class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">手动拖选</span>
                             </label>
-                            <label class="flex items-center cursor-pointer">
-                                <input type="radio" name="cropMode" value="preset" class="mr-3 accent-morandi-sage">
+                            <label for="cropModePreset" class="flex items-center cursor-pointer">
+                                <input type="radio" id="cropModePreset" name="cropMode" value="preset" class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">预设尺寸</span>
                             </label>
                         </div>
@@ -280,8 +280,8 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-morandi-deep mb-3">宽高比约束</label>
-                                    <select id="aspectRatioConstraint" class="select-field w-full rounded-xl px-4 py-3">
+                                    <label for="aspectRatioConstraint" class="block text-sm font-medium text-morandi-deep mb-3">宽高比约束</label>
+                                    <select id="aspectRatioConstraint" name="aspectRatioConstraint" class="select-field w-full rounded-xl px-4 py-3">
                                         <option value="free">自由裁剪</option>
                                         <option value="1:1">正方形 (1:1)</option>
                                         <option value="4:3">标准 (4:3)</option>
@@ -294,17 +294,17 @@
                                 <div id="customRatioInputs" class="hidden">
                                     <label class="block text-sm font-medium text-morandi-deep mb-3">自定义比例</label>
                                     <div class="flex space-x-2 items-center">
-                                        <input type="number" id="customRatioW" placeholder="4" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
+                                        <input type="number" id="customRatioW" name="customRatioW" placeholder="4" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
                                         <span class="text-morandi-deep">:</span>
-                                        <input type="number" id="customRatioH" placeholder="3" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
+                                        <input type="number" id="customRatioH" name="customRatioH" placeholder="3" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
                                     </div>
                                 </div>
                                 <div id="minSizeInputs">
                                     <label class="block text-sm font-medium text-morandi-deep mb-3">最小尺寸</label>
                                     <div class="flex space-x-2">
-                                        <input type="number" id="minCropWidth" placeholder="100" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
+                                        <input type="number" id="minCropWidth" name="minCropWidth" placeholder="100" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
                                         <span class="text-morandi-deep text-sm self-center">×</span>
-                                        <input type="number" id="minCropHeight" placeholder="100" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
+                                        <input type="number" id="minCropHeight" name="minCropHeight" placeholder="100" min="1" class="input-field flex-1 rounded-xl px-3 py-3">
                                     </div>
                                 </div>
                             </div>
@@ -362,25 +362,25 @@
                     <div id="presetCropOptions" class="hidden">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">裁剪宽度</label>
-                                <input type="number" id="cropWidth" placeholder="400" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="cropWidth" class="block text-sm font-medium text-morandi-deep mb-3">裁剪宽度</label>
+                                <input type="number" id="cropWidth" name="cropWidth" placeholder="400" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">裁剪高度</label>
-                                <input type="number" id="cropHeight" placeholder="300" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="cropHeight" class="block text-sm font-medium text-morandi-deep mb-3">裁剪高度</label>
+                                <input type="number" id="cropHeight" name="cropHeight" placeholder="300" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">起始X坐标</label>
-                                <input type="number" id="cropX" placeholder="0" value="0" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="cropX" class="block text-sm font-medium text-morandi-deep mb-3">起始X坐标</label>
+                                <input type="number" id="cropX" name="cropX" placeholder="0" value="0" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">起始Y坐标</label>
-                                <input type="number" id="cropY" placeholder="0" value="0" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="cropY" class="block text-sm font-medium text-morandi-deep mb-3">起始Y坐标</label>
+                                <input type="number" id="cropY" name="cropY" placeholder="0" value="0" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                         </div>
                         <div class="mb-6">
-                            <label class="block text-sm font-medium text-morandi-deep mb-3">裁剪位置</label>
-                            <select id="cropPosition" class="select-field w-full rounded-xl px-4 py-3">
+                            <label for="cropPosition" class="block text-sm font-medium text-morandi-deep mb-3">裁剪位置</label>
+                            <select id="cropPosition" name="cropPosition" class="select-field w-full rounded-xl px-4 py-3">
                                 <option value="custom">自定义坐标</option>
                                 <option value="center">居中裁剪</option>
                                 <option value="top-left">左上角</option>
@@ -410,12 +410,12 @@
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-morandi-deep mb-3">操作类型</label>
                     <div class="flex space-x-6">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="watermarkAction" value="add" checked class="mr-3 accent-morandi-sage">
+                        <label for="watermarkActionAdd" class="flex items-center cursor-pointer">
+                            <input type="radio" id="watermarkActionAdd" name="watermarkAction" value="add" checked class="mr-3 accent-morandi-sage">
                             <span class="text-morandi-deep">添加水印</span>
                         </label>
-                        <label class="flex items-center cursor-pointer">
-                            <input type="radio" name="watermarkAction" value="remove" class="mr-3 accent-morandi-sage">
+                        <label for="watermarkActionRemove" class="flex items-center cursor-pointer">
+                            <input type="radio" id="watermarkActionRemove" name="watermarkAction" value="remove" class="mr-3 accent-morandi-sage">
                             <span class="text-morandi-deep">去除水印</span>
                         </label>
                     </div>
@@ -423,8 +423,8 @@
 
                 <div id="addWatermarkOptions" class="space-y-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">水印类型</label>
-                        <select id="watermarkType" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="watermarkType" class="block text-sm font-medium text-morandi-deep mb-3">水印类型</label>
+                        <select id="watermarkType" name="watermarkType" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="text">文字水印</option>
                             <option value="image">图片水印</option>
                         </select>
@@ -432,27 +432,27 @@
                     <div id="textWatermarkOptions">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">水印文字</label>
-                                <input type="text" id="watermarkText" placeholder="Copyright © 2025" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="watermarkText" class="block text-sm font-medium text-morandi-deep mb-3">水印文字</label>
+                                <input type="text" id="watermarkText" name="watermarkText" placeholder="Copyright © 2025" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">字体大小</label>
-                                <input type="number" id="fontSize" value="24" min="12" max="100" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="fontSize" class="block text-sm font-medium text-morandi-deep mb-3">字体大小</label>
+                                <input type="number" id="fontSize" name="fontSize" value="24" min="12" max="100" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">字体颜色</label>
-                                <input type="color" id="fontColor" value="#ffffff" class="w-full h-12 rounded-xl border-2 border-morandi-sage cursor-pointer">
+                                <label for="fontColor" class="block text-sm font-medium text-morandi-deep mb-3">字体颜色</label>
+                                <input type="color" id="fontColor" name="fontColor" value="#ffffff" class="w-full h-12 rounded-xl border-2 border-morandi-sage cursor-pointer">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">透明度</label>
-                                <input type="range" id="watermarkOpacity" min="0.1" max="1" step="0.1" value="0.7" class="range-slider w-full">
+                                <label for="watermarkOpacity" class="block text-sm font-medium text-morandi-deep mb-3">透明度</label>
+                                <input type="range" id="watermarkOpacity" name="watermarkOpacity" min="0.1" max="1" step="0.1" value="0.7" class="range-slider w-full">
                                 <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="opacityValue">70</span>%</div>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">水印位置</label>
-                        <select id="watermarkPosition" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="watermarkPosition" class="block text-sm font-medium text-morandi-deep mb-3">水印位置</label>
+                        <select id="watermarkPosition" name="watermarkPosition" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="bottom-right">右下角</option>
                             <option value="bottom-left">左下角</option>
                             <option value="top-right">右上角</option>
@@ -466,12 +466,12 @@
                     <div class="mb-6">
                         <label class="block text-sm font-medium text-morandi-deep mb-3">去除方式</label>
                         <div class="flex space-x-6">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="radio" name="removeMethod" value="auto" checked class="mr-3 accent-morandi-sage">
+                            <label for="removeMethodAuto" class="flex items-center cursor-pointer">
+                                <input type="radio" id="removeMethodAuto" name="removeMethod" value="auto" checked class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">自动检测</span>
                             </label>
-                            <label class="flex items-center cursor-pointer">
-                                <input type="radio" name="removeMethod" value="manual" class="mr-3 accent-morandi-sage">
+                            <label for="removeMethodManual" class="flex items-center cursor-pointer">
+                                <input type="radio" id="removeMethodManual" name="removeMethod" value="manual" class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">手动涂抹</span>
                             </label>
                         </div>
@@ -480,16 +480,16 @@
                     <div id="autoRemoveOptions" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">检测敏感度</label>
-                                <select id="watermarkSensitivity" class="select-field w-full rounded-xl px-4 py-3">
+                                <label for="watermarkSensitivity" class="block text-sm font-medium text-morandi-deep mb-3">检测敏感度</label>
+                                <select id="watermarkSensitivity" name="watermarkSensitivity" class="select-field w-full rounded-xl px-4 py-3">
                                     <option value="low">低 (只去除明显水印)</option>
                                     <option value="medium" selected>中等 (平衡效果)</option>
                                     <option value="high">高 (去除细微水印)</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">修复强度</label>
-                                <input type="range" id="repairStrength" min="1" max="10" value="5" class="range-slider w-full">
+                                <label for="repairStrength" class="block text-sm font-medium text-morandi-deep mb-3">修复强度</label>
+                                <input type="range" id="repairStrength" name="repairStrength" min="1" max="10" value="5" class="range-slider w-full">
                                 <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="repairValue">5</span></div>
                             </div>
                         </div>
@@ -521,13 +521,13 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-morandi-deep mb-3">画笔大小</label>
-                                    <input type="range" id="brushSize" min="5" max="50" value="15" class="range-slider w-full">
+                                    <label for="brushSize" class="block text-sm font-medium text-morandi-deep mb-3">画笔大小</label>
+                                    <input type="range" id="brushSize" name="brushSize" min="5" max="50" value="15" class="range-slider w-full">
                                     <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="brushSizeValue">15</span>px</div>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-morandi-deep mb-3">修复算法</label>
-                                    <select id="repairAlgorithm" class="select-field w-full rounded-xl px-4 py-3">
+                                    <label for="repairAlgorithm" class="block text-sm font-medium text-morandi-deep mb-3">修复算法</label>
+                                    <select id="repairAlgorithm" name="repairAlgorithm" class="select-field w-full rounded-xl px-4 py-3">
                                         <option value="inpaint">内容感知修复</option>
                                         <option value="blur">模糊填充</option>
                                         <option value="clone">周边复制</option>
@@ -535,8 +535,8 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-morandi-deep mb-3">修复强度</label>
-                                    <input type="range" id="manualRepairStrength" min="1" max="10" value="7" class="range-slider w-full">
+                                    <label for="manualRepairStrength" class="block text-sm font-medium text-morandi-deep mb-3">修复强度</label>
+                                    <input type="range" id="manualRepairStrength" name="manualRepairStrength" min="1" max="10" value="7" class="range-slider w-full">
                                     <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="manualRepairValue">7</span></div>
                                 </div>
                             </div>
@@ -589,23 +589,23 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">亮度</label>
-                        <input type="range" id="brightness" min="0" max="200" value="100" class="range-slider w-full">
+                        <label for="brightness" class="block text-sm font-medium text-morandi-deep mb-3">亮度</label>
+                        <input type="range" id="brightness" name="brightness" min="0" max="200" value="100" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="brightnessValue">100</span>%</div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">对比度</label>
-                        <input type="range" id="contrast" min="0" max="200" value="100" class="range-slider w-full">
+                        <label for="contrast" class="block text-sm font-medium text-morandi-deep mb-3">对比度</label>
+                        <input type="range" id="contrast" name="contrast" min="0" max="200" value="100" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="contrastValue">100</span>%</div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">饱和度</label>
-                        <input type="range" id="saturation" min="0" max="200" value="100" class="range-slider w-full">
+                        <label for="saturation" class="block text-sm font-medium text-morandi-deep mb-3">饱和度</label>
+                        <input type="range" id="saturation" name="saturation" min="0" max="200" value="100" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="saturationValue">100</span>%</div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">模糊</label>
-                        <input type="range" id="blur" min="0" max="10" value="0" class="range-slider w-full">
+                        <label for="blur" class="block text-sm font-medium text-morandi-deep mb-3">模糊</label>
+                        <input type="range" id="blur" name="blur" min="0" max="10" value="0" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="blurValue">0</span>px</div>
                     </div>
                 </div>
@@ -634,17 +634,17 @@
                 </div>
                 <div class="space-y-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">背景类型</label>
-                        <select id="backgroundType" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="backgroundType" class="block text-sm font-medium text-morandi-deep mb-3">背景类型</label>
+                        <select id="backgroundType" name="backgroundType" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="solid">纯色背景</option>
                             <option value="gradient">渐变背景</option>
                             <option value="random">随机颜色</option>
                         </select>
                     </div>
                     <div id="solidColorOptions">
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">背景颜色</label>
+                        <label for="backgroundColor1" class="block text-sm font-medium text-morandi-deep mb-3">背景颜色</label>
                         <div class="flex space-x-3">
-                            <input type="color" id="backgroundColor1" value="#ffffff" class="w-20 h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
+                            <input type="color" id="backgroundColor1" name="backgroundColor1" value="#ffffff" class="w-20 h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
                             <div class="flex-1 grid grid-cols-4 gap-3">
                                 <button class="color-preset w-full h-12" style="background: #ffffff" data-color="#ffffff"></button>
                                 <button class="color-preset w-full h-12" style="background: #000000" data-color="#000000"></button>
@@ -656,16 +656,16 @@
                     <div id="gradientOptions" class="hidden">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">起始颜色</label>
-                                <input type="color" id="gradientStart" value="#9bb5a6" class="w-full h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
+                                <label for="gradientStart" class="block text-sm font-medium text-morandi-deep mb-3">起始颜色</label>
+                                <input type="color" id="gradientStart" name="gradientStart" value="#9bb5a6" class="w-full h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">结束颜色</label>
-                                <input type="color" id="gradientEnd" value="#c4a484" class="w-full h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
+                                <label for="gradientEnd" class="block text-sm font-medium text-morandi-deep mb-3">结束颜色</label>
+                                <input type="color" id="gradientEnd" name="gradientEnd" value="#c4a484" class="w-full h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">渐变方向</label>
-                                <select id="gradientDirection" class="select-field w-full rounded-xl px-4 py-3">
+                                <label for="gradientDirection" class="block text-sm font-medium text-morandi-deep mb-3">渐变方向</label>
+                                <select id="gradientDirection" name="gradientDirection" class="select-field w-full rounded-xl px-4 py-3">
                                     <option value="horizontal">水平</option>
                                     <option value="vertical">垂直</option>
                                     <option value="diagonal">对角线</option>
@@ -675,8 +675,8 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">图像位置</label>
-                        <select id="imagePosition" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="imagePosition" class="block text-sm font-medium text-morandi-deep mb-3">图像位置</label>
+                        <select id="imagePosition" name="imagePosition" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="center">居中</option>
                             <option value="stretch">拉伸填充</option>
                             <option value="fit">适应尺寸</option>
@@ -700,8 +700,8 @@
                 </div>
                 <div class="space-y-6 mb-6">
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">拼接方式</label>
-                        <select id="spliceMode" class="select-field w-full rounded-xl px-4 py-3">
+                        <label for="spliceMode" class="block text-sm font-medium text-morandi-deep mb-3">拼接方式</label>
+                        <select id="spliceMode" name="spliceMode" class="select-field w-full rounded-xl px-4 py-3">
                             <option value="horizontal">水平拼接</option>
                             <option value="vertical">垂直拼接</option>
                             <option value="grid">网格拼接</option>
@@ -711,32 +711,32 @@
                     <div id="gridOptions" class="hidden">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">网格列数</label>
-                                <input type="number" id="gridColumns" min="1" max="10" value="2" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="gridColumns" class="block text-sm font-medium text-morandi-deep mb-3">网格列数</label>
+                                <input type="number" id="gridColumns" name="gridColumns" min="1" max="10" value="2" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-morandi-deep mb-3">网格行数</label>
-                                <input type="number" id="gridRows" min="1" max="10" value="2" class="input-field w-full rounded-xl px-4 py-3">
+                                <label for="gridRows" class="block text-sm font-medium text-morandi-deep mb-3">网格行数</label>
+                                <input type="number" id="gridRows" name="gridRows" min="1" max="10" value="2" class="input-field w-full rounded-xl px-4 py-3">
                             </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-morandi-deep mb-3">图片间距</label>
-                            <input type="number" id="imageSpacing" min="0" max="100" value="10" class="input-field w-full rounded-xl px-4 py-3">
+                            <label for="imageSpacing" class="block text-sm font-medium text-morandi-deep mb-3">图片间距</label>
+                            <input type="number" id="imageSpacing" name="imageSpacing" min="0" max="100" value="10" class="input-field w-full rounded-xl px-4 py-3">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-morandi-deep mb-3">背景颜色</label>
-                            <input type="color" id="spliceBackground" value="#f4f1ec" class="w-full h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
+                            <label for="spliceBackground" class="block text-sm font-medium text-morandi-deep mb-3">背景颜色</label>
+                            <input type="color" id="spliceBackground" name="spliceBackground" value="#f4f1ec" class="w-full h-12 border-2 border-morandi-sage rounded-xl cursor-pointer">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-morandi-deep mb-3">输出宽度</label>
-                            <input type="number" id="spliceWidth" placeholder="1200" class="input-field w-full rounded-xl px-4 py-3">
+                            <label for="spliceWidth" class="block text-sm font-medium text-morandi-deep mb-3">输出宽度</label>
+                            <input type="number" id="spliceWidth" name="spliceWidth" placeholder="1200" class="input-field w-full rounded-xl px-4 py-3">
                         </div>
                     </div>
                     <div>
-                        <label class="flex items-center cursor-pointer text-morandi-deep">
-                            <input type="checkbox" id="maintainAspect" checked class="mr-3 accent-morandi-sage">
+                        <label for="maintainAspect" class="flex items-center cursor-pointer text-morandi-deep">
+                            <input type="checkbox" id="maintainAspect" name="maintainAspect" checked class="mr-3 accent-morandi-sage">
                             保持图片宽高比
                         </label>
                     </div>
@@ -759,27 +759,27 @@
                     <div>
                         <label class="block text-sm font-medium text-morandi-deep mb-3">分析项目</label>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" id="analyzeColors" checked class="mr-3 accent-morandi-sage">
+                            <label for="analyzeColors" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="analyzeColors" name="analyzeColors" checked class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">主色调提取</span>
                             </label>
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" id="analyzeDimensions" checked class="mr-3 accent-morandi-sage">
+                            <label for="analyzeDimensions" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="analyzeDimensions" name="analyzeDimensions" checked class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">尺寸信息</span>
                             </label>
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" id="analyzeFileInfo" checked class="mr-3 accent-morandi-sage">
+                            <label for="analyzeFileInfo" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="analyzeFileInfo" name="analyzeFileInfo" checked class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">文件信息</span>
                             </label>
-                            <label class="flex items-center cursor-pointer">
-                                <input type="checkbox" id="analyzeQuality" checked class="mr-3 accent-morandi-sage">
+                            <label for="analyzeQuality" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="analyzeQuality" name="analyzeQuality" checked class="mr-3 accent-morandi-sage">
                                 <span class="text-morandi-deep">图像质量</span>
                             </label>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-morandi-deep mb-3">主色调数量</label>
-                        <input type="range" id="colorCount" min="3" max="10" value="5" class="range-slider w-full">
+                        <label for="colorCount" class="block text-sm font-medium text-morandi-deep mb-3">主色调数量</label>
+                        <input type="range" id="colorCount" name="colorCount" min="3" max="10" value="5" class="range-slider w-full">
                         <div class="text-xs text-morandi-shadow text-center mt-2 font-medium"><span id="colorCountValue">5</span> 种颜色</div>
                     </div>
                     <div class="p-6 bg-gradient-to-r from-macaron-mint to-macaron-lavender rounded-xl">
@@ -857,43 +857,59 @@
                         <ul id="batchOperationList" class="space-y-2 mb-6">
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-macaron-mint to-macaron-lavender rounded-xl shadow-sm" draggable="true" data-operation="convert">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="convert" class="mr-3 accent-morandi-sage" checked>
-                                <span class="text-morandi-deep">🔄 格式转换</span>
+                                <label for="batchConvert" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchConvert" name="batchOperation" value="convert" class="mr-3 accent-morandi-sage" checked>
+                                    <span class="text-morandi-deep">🔄 格式转换</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-macaron-peach to-macaron-rose rounded-xl shadow-sm" draggable="true" data-operation="compress">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="compress" class="mr-3 accent-morandi-sage" checked>
-                                <span class="text-morandi-deep">📦 压缩优化</span>
+                                <label for="batchCompress" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchCompress" name="batchOperation" value="compress" class="mr-3 accent-morandi-sage" checked>
+                                    <span class="text-morandi-deep">📦 压缩优化</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-morandi-pearl to-morandi-cloud rounded-xl shadow-sm" draggable="true" data-operation="resize">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="resize" class="mr-3 accent-morandi-sage" checked>
-                                <span class="text-morandi-deep">📏 尺寸调整</span>
+                                <label for="batchResize" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchResize" name="batchOperation" value="resize" class="mr-3 accent-morandi-sage" checked>
+                                    <span class="text-morandi-deep">📏 尺寸调整</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-monet-water to-monet-lily rounded-xl shadow-sm" draggable="true" data-operation="watermark">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="watermark" class="mr-3 accent-morandi-sage" checked>
-                                <span class="text-morandi-deep">💧 水印处理</span>
+                                <label for="batchWatermark" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchWatermark" name="batchOperation" value="watermark" class="mr-3 accent-morandi-sage" checked>
+                                    <span class="text-morandi-deep">💧 水印处理</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-morandi-sage to-morandi-dust rounded-xl shadow-sm" draggable="true" data-operation="filter">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="filter" class="mr-3 accent-morandi-sage" checked>
-                                <span class="text-morandi-deep">🎨 艺术滤镜</span>
+                                <label for="batchFilter" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchFilter" name="batchOperation" value="filter" class="mr-3 accent-morandi-sage" checked>
+                                    <span class="text-morandi-deep">🎨 艺术滤镜</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-macaron-lemon to-white rounded-xl shadow-sm" draggable="true" data-operation="background">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="background" class="mr-3 accent-morandi-sage">
-                                <span class="text-morandi-deep">🖼️ 一键加底</span>
+                                <label for="batchBackground" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchBackground" name="batchOperation" value="background" class="mr-3 accent-morandi-sage">
+                                    <span class="text-morandi-deep">🖼️ 一键加底</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-van-gogh-blue to-van-gogh-yellow rounded-xl shadow-sm" draggable="true" data-operation="splice">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="splice" class="mr-3 accent-morandi-sage">
-                                <span class="text-morandi-deep">🧩 图像拼接</span>
+                                <label for="batchSplice" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchSplice" name="batchOperation" value="splice" class="mr-3 accent-morandi-sage">
+                                    <span class="text-morandi-deep">🧩 图像拼接</span>
+                                </label>
                             </li>
                             <li class="draggable-item flex items-center p-3 bg-gradient-to-r from-morandi-clay to-morandi-stone rounded-xl shadow-sm" draggable="true" data-operation="analyze">
                                 <span class="drag-handle text-morandi-deep mr-3 cursor-grab">⠿</span>
-                                <input type="checkbox" name="batchOperation" value="analyze" class="mr-3 accent-morandi-sage">
-                                <span class="text-morandi-deep">🔍 图像分析</span>
+                                <label for="batchAnalyze" class="flex items-center cursor-pointer">
+                                    <input type="checkbox" id="batchAnalyze" name="batchOperation" value="analyze" class="mr-3 accent-morandi-sage">
+                                    <span class="text-morandi-deep">🔍 图像分析</span>
+                                </label>
                             </li>
                         </ul>
                         <div class="flex justify-end space-x-4">
