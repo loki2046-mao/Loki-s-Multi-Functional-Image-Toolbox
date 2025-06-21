@@ -30,6 +30,7 @@ class ArtisticImageProcessor {
             console.log('🎨 Loki\'s Digital Atelier 初始化成功！', this); // Add debug log for 'this'
         } catch (error) {
             console.error('Loki\'s Digital Atelier 初始化失败:', error);
+            // 确保这里能给用户一个可见的提示
             const errorDiv = document.createElement('div');
             errorDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
             errorDiv.textContent = '应用初始化失败，请检查浏览器控制台（F12）了解详情。';
@@ -1598,7 +1599,8 @@ class ArtisticImageProcessor {
         if (this.isProcessing || this.files.length === 0) return;
 
         this.isProcessing = true;
-        this.showProgress(); // Debugging: Ensure this is correctly called
+        console.log("startProcessing called, this:", this); // Debugging: check 'this' here
+        this.showProgress(); 
         
         const results = [];
         const totalFiles = this.files.length;
@@ -1668,6 +1670,7 @@ class ArtisticImageProcessor {
         }
 
         this.isProcessing = true;
+        console.log("confirmBatchOperations called, this:", this); // Debugging: check 'this' here
         this.showProgress(); 
         
         const finalResults = []; 
@@ -1825,7 +1828,7 @@ class ArtisticImageProcessor {
                 const loadedImage = await this.loadImage(file); 
                 img.src = loadedImage.src; 
                 
-                // Use arrow function for img.onload to correctly bind 'this'
+                // Using an arrow function for img.onload to correctly bind 'this'
                 img.onload = async () => {
                     canvas.width = img.naturalWidth; 
                     canvas.height = img.naturalHeight;
@@ -1849,8 +1852,6 @@ class ArtisticImageProcessor {
                             await this.applyFormatConversion(canvas, ctx, img);
                             break;
                         case 'compress':
-                            // Ensure applyCompression is called with `this` context
-                            // No need to bind explicitly if it's called as this.applyCompression()
                             compressResult = await this.applyCompression(canvas, ctx, img, file);
                             
                             const selectedCompressFormat = document.getElementById('compressOutputFormat')?.value;
@@ -1919,6 +1920,7 @@ class ArtisticImageProcessor {
                     });
                 };
 
+                // This onerror is for when img.src fails to load the image data
                 img.onerror = (e) => {
                     console.error(`Image loading failed within processFile for mode '${mode}':`, e, "Input file:", file);
                     const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
@@ -1936,7 +1938,7 @@ class ArtisticImageProcessor {
                 };
 
             } catch (error) {
-                // Catch errors before img.onload or in loadImage itself
+                // This catch is for errors *before* img.onload or in loadImage itself
                 console.error(`Unhandled error during processFile for mode '${mode}':`, error, "Input file:", file);
                 const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
                 const originalFormatForError = file.type ? file.type.split('/')[1] : (file.format || 'unknown');
