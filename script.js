@@ -999,12 +999,10 @@ class ArtisticImageProcessor {
                             </div>
                         </div>
                         <div class="mt-6 text-center text-sm text-morandi-shadow">
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>起始X: <strong>${Math.round(this.cropSelection.x / this.currentCropImage.scaleX)}</strong></div>
-                                <div>起始Y: <strong>${Math.round(this.cropSelection.y / this.currentCropImage.scaleY)}</strong></div>
-                                <div>宽度: <strong>${Math.round(this.cropSelection.width / this.currentCropImage.scaleX)}</strong></div>
-                                <div>高度: <strong>${Math.round(this.cropSelection.height / this.currentCropImage.scaleY)}</strong></div>
-                            </div>
+                            <div>起始X: <strong>${Math.round(this.cropSelection.x / this.currentCropImage.scaleX)}</strong></div>
+                            <div>起始Y: <strong>${Math.round(this.cropSelection.y / this.currentCropImage.scaleY)}</strong></div>
+                            <div>宽度: <strong>${Math.round(this.cropSelection.width / this.currentCropImage.scaleX)}</strong></div>
+                            <div>高度: <strong>${Math.round(this.cropSelection.height / this.currentCropImage.scaleY)}</strong></div>
                         </div>
                     </div>
                 </div>
@@ -1674,9 +1672,6 @@ class ArtisticImageProcessor {
         const totalFiles = this.files.length;
         const operations = selectedOperations; 
 
-        // Handle 'splice' as a special case if it's in the batch and needs to combine all files.
-        // If it's a per-file splice, it will be handled by processFile like others.
-        // Here, we assume 'splice' means combining ALL current files, and it's a *terminal* operation.
         const isSpliceInBatchAndMultiFile = operations.includes('splice') && this.files.length > 1;
 
         if (isSpliceInBatchAndMultiFile) {
@@ -1692,7 +1687,6 @@ class ArtisticImageProcessor {
                 finalResults.push(spliceResult); 
             } else {
                 let currentOutputOfChain = spliceResult;
-                // Run subsequent operations on the single spliced image
                 const operationsAfterSplice = operations.slice(operations.indexOf('splice') + 1);
 
                 for (const op of operationsAfterSplice) {
@@ -1712,7 +1706,6 @@ class ArtisticImageProcessor {
                 finalResults.push(currentOutputOfChain); 
             }
         } else {
-            // Standard per-file batch processing (including single-file splice if only one file)
             for (let i = 0; i < totalFiles; i++) {
                 let currentFileToProcess = this.files[i]; 
                 const originalFileInputForResults = this.files[i]; 
@@ -1744,7 +1737,7 @@ class ArtisticImageProcessor {
                         console.error(`执行操作 '${operation}' 发生未捕获错误 for ${originalFileInputForResults.name}:`, err);
                         currentFileToProcess = { 
                             originalName: originalFileInputForResults.name,
-                            processedName: `${originalFileInputForResults.name.split('.')[0]}_${operation}_CRITICAL_ERROR.${originalFileInputForResults.type ? originalFileInputForResults.type.split('/')[1] : 'unknown'}`,
+                            processedName: `${originalFileInputForResults.name.split('.')[0]}_${this.getOperationName(operation).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}_关键错误.${originalFileInputForResults.type ? originalFileInputForResults.type.split('/')[1] : 'unknown'}`,
                             originalUrl: URL.createObjectURL(originalFileInputForResults),
                             processedUrl: '#',
                             type: operation,
@@ -1827,9 +1820,11 @@ class ArtisticImageProcessor {
         
         return new Promise(async (resolve) => {
             try {
+                // Ensure image loading is awaited and handles errors internally
                 const loadedImage = await this.loadImage(file); 
                 img.src = loadedImage.src; 
                 
+                // Use arrow function for img.onload to preserve 'this' context
                 img.onload = async () => {
                     canvas.width = img.naturalWidth; 
                     canvas.height = img.naturalHeight;
@@ -1876,7 +1871,7 @@ class ArtisticImageProcessor {
                             break;
                         case 'background':
                             await this.applyBackground(canvas, ctx, img);
-                            if (this.isImageTransparent(canvas)) { // Check if transparency is needed for output
+                            if (this.isImageTransparent(canvas)) { 
                                 currentOutputFormat = 'png'; 
                             } else {
                                 currentOutputFormat = (effectiveInputFormat === 'jpeg' || effectiveInputFormat === 'jpg') ? 'jpeg' : 'png';
@@ -1887,11 +1882,9 @@ class ArtisticImageProcessor {
                             resolve(analysisResult);
                             return; 
                         case 'splice':
-                            // For a single file, "splice" might just be adding borders or other single-image layout.
                             console.warn("Splice operation in per-file processFile is simplified. It processes the single input image.");
                             const singleSpliceResult = await this.createSplicedImage([img], 'vertical', 10, '#f4f1ec', img.naturalWidth + 20, true);
                             currentOutputFormat = singleSpliceResult.format;
-                            // Draw the single spliced image back to main canvas for next operation
                             canvas.width = singleSpliceResult.img.naturalWidth;
                             canvas.height = singleSpliceResult.img.naturalHeight;
                             ctx.drawImage(singleSpliceResult.img, 0, 0);
@@ -1910,7 +1903,7 @@ class ArtisticImageProcessor {
                     
                     const originalNameForOutput = file.name || (file.originalName ? file.originalName : 'processed_image');
                     const baseName = originalNameForOutput.split('.')[0];
-                    const outputFilename = `${baseName}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}.${currentOutputFormat === 'jpeg' ? 'jpg' : currentOutputFormat}`; // Sanitize filename
+                    const outputFilename = `${baseName}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}.${currentOutputFormat === 'jpeg' ? 'jpg' : currentOutputFormat}`; 
 
                     resolve({
                         originalName: originalNameForOutput,
@@ -1923,22 +1916,36 @@ class ArtisticImageProcessor {
                     });
                 };
 
-                // Trigger img loading
-                img.src = loadedImage.src;
+                // Catch errors during img.src assignment or initial load
+                img.onerror = (e) => {
+                    console.error(`Image loading failed within processFile for mode '${mode}':`, e, "Input file:", file);
+                    const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
+                    const originalFormatForError = file.type ? file.type.split('/')[1] : (file.format || 'unknown');
+                    resolve({
+                        originalName: originalNameForError,
+                        processedName: `${originalNameForError.split('.')[0]}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}_加载错误.${originalFormatForError}`,
+                        originalUrl: (file instanceof File) ? URL.createObjectURL(file) : (file.originalUrl || file.processedUrl),
+                        processedUrl: '#', 
+                        type: mode,
+                        size: file.size || 0,
+                        format: originalFormatForError,
+                        error: `图片加载失败: ${e.message || '未知错误'}`
+                    });
+                };
 
             } catch (error) {
-                console.error(`文件处理失败 (模式: ${mode}):`, error, "输入文件:", file);
+                console.error(`Unhandled error during processFile for mode '${mode}':`, error, "Input file:", file);
                 const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
                 const originalFormatForError = file.type ? file.type.split('/')[1] : (file.format || 'unknown');
                 resolve({
                     originalName: originalNameForError,
-                    processedName: `${originalNameForError.split('.')[0]}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}_错误.${originalFormatForError}`,
+                    processedName: `${originalNameForError.split('.')[0]}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}_未捕获错误.${originalFormatForError}`,
                     originalUrl: (file instanceof File) ? URL.createObjectURL(file) : (file.originalUrl || file.processedUrl),
                     processedUrl: '#', 
                     type: mode,
                     size: file.size || 0,
                     format: originalFormatForError,
-                    error: `处理失败: ${error.message || error}`
+                    error: `未捕获错误: ${error.message || '未知错误'}`
                 });
             }
         });
@@ -1947,7 +1954,7 @@ class ArtisticImageProcessor {
     async applyCompression(canvas, ctx, img, file) {
         const level = document.getElementById('compressLevel')?.value;
         const targetSizeKB = parseInt(document.getElementById('targetSize')?.value || '0');
-        let quality = 0.7; // Default quality for medium compression
+        let quality = 0.7; 
         
         switch(level) {
             case 'light': quality = 0.9; break;
@@ -1957,18 +1964,16 @@ class ArtisticImageProcessor {
         }
 
         const selectedOutputFormat = document.getElementById('compressOutputFormat')?.value || 'original';
-        let effectiveOutputFormat = file.type ? file.type.split('/')[1].toLowerCase() : 'png'; // Start with original format based on input `file`
+        let effectiveOutputFormat = file.type ? file.type.split('/')[1].toLowerCase() : 'png'; 
 
         if (selectedOutputFormat !== 'original') {
             effectiveOutputFormat = selectedOutputFormat;
         } else {
             // If 'original' is chosen, check the actual transparency of the canvas content.
-            // If the current image has transparency, it must remain PNG/WebP to preserve it.
-            // If it doesn't have transparency, JPEG is a good default for compression.
-            if (this.isImageTransparent(canvas)) { // Check canvas, not original file directly
-                effectiveOutputFormat = (effectiveOutputFormat === 'webp') ? 'webp' : 'png'; // Prefer WebP if it was originally, else PNG
+            if (this.isImageTransparent(canvas)) { 
+                effectiveOutputFormat = (effectiveOutputFormat === 'webp') ? 'webp' : 'png'; 
             } else {
-                effectiveOutputFormat = (effectiveInputFormat === 'jpeg' || effectiveInputFormat === 'jpg') ? 'jpeg' : 'jpeg'; // Default to JPEG if no transparency needed and not originally transparent format
+                effectiveOutputFormat = (effectiveInputFormat === 'jpeg' || effectiveInputFormat === 'jpg') ? 'jpeg' : 'jpeg';
             }
         }
 
@@ -1992,15 +1997,12 @@ class ArtisticImageProcessor {
         const format = targetMimeType.split('/')[1];
     
         if (format === 'png') {
-            // PNG compression is mostly lossless. Trying to hit specific size with `quality` parameter is unreliable.
-            // If the goal is a smaller PNG, it needs specialized PNG optimization (e.g., reducing color palette, which Canvas.toDataURL doesn't control).
-            // So, for PNG, we return max quality and accept its natural size.
             return 1.0; 
         }
     
         let currentSize = this.getCanvasSizeBytes(canvas, format, initialQuality);
         
-        if (currentSize <= targetSizeBytes) {
+        if (currentSize <= targetSizeBytes || initialQuality <= 0.1) {
             return initialQuality;
         }
     
@@ -2239,7 +2241,8 @@ class ArtisticImageProcessor {
             canvas.width = Math.max(...scaledImages.map(p => p.width)) + spacing * 2;
             canvas.height = scaledImages.reduce((sum, p) => sum + p.height, 0) + spacing * (scaledImages.length + 1);
         } else if (mode === 'grid') {
-            cols = parseInt(document.getElementById('gridColumns')?.value || '2');
+            const gridColumnsInput = document.getElementById('gridColumns');
+            cols = parseInt(gridColumnsInput?.value || '2');
             if (cols === 0) cols = 1; 
             
             const gridCellWidth = (outputWidth - spacing * (cols + 1)) / cols;
@@ -2313,7 +2316,7 @@ class ArtisticImageProcessor {
         const dataURL = canvas.toDataURL('image/png', 0.9); 
         
         return {
-            img: canvas, // Return the canvas itself for chaining in batch processing
+            img: canvas, 
             originalName: 'spliced_images',
             processedName: `spliced_${mode}_${Date.now()}.png`,
             originalUrl: null, 
@@ -2645,7 +2648,6 @@ class ArtisticImageProcessor {
         };
         const typeColor = typeColors[result.type] || 'from-morandi-shadow to-morandi-deep';
         
-        // Ensure URLs are valid strings before using them in src. Handle errors gracefully.
         const originalImgSrc = result.originalUrl && typeof result.originalUrl === 'string' ? result.originalUrl : '#';
         const processedImgSrc = result.processedUrl && typeof result.processedUrl === 'string' ? result.processedUrl : '#';
 
@@ -2738,7 +2740,6 @@ class ArtisticImageProcessor {
         }
     }
 
-    // Helper to convert data URL to Blob for JSZip
     dataURLtoBlob(dataurl) {
         const arr = dataurl.split(',');
         const mime = arr[0].match(/:(.*?);/)[1];
