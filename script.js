@@ -27,10 +27,15 @@ class ArtisticImageProcessor {
             this.setupRangeInputs();
             this.setupArtisticAnimations();
             this.setupDragAndDropReorder(); // Initialize drag-and-drop for batch operation reordering
-            console.log('🎨 Loki\'s Digital Atelier initialized successfully!');
+            console.log('🎨 Loki\'s Digital Atelier 初始化成功！');
         } catch (error) {
-            console.error('Loki\'s Digital Atelier initialization failed:', error);
-            alert('Application initialization failed. Please check the browser console for details.');
+            console.error('Loki\'s Digital Atelier 初始化失败:', error);
+            // 确保这里能给用户一个可见的提示
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+            errorDiv.textContent = '应用初始化失败，请检查浏览器控制台（F12）了解详情。';
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
         }
     }
 
@@ -75,7 +80,7 @@ class ArtisticImageProcessor {
             fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
         
-        const uploadButton = document.querySelector('#uploadArea button'); // Selector for the button
+        const uploadButton = document.querySelector('#uploadArea button'); 
         if (uploadButton) {
             uploadButton.addEventListener('click', () => {
                 const fi = getElement('fileInput');
@@ -243,7 +248,10 @@ class ArtisticImageProcessor {
 
     setupDragAndDropReorder() {
         const list = document.getElementById('batchOperationList');
-        if (!list) return;
+        if (!list) {
+            console.warn("Batch operation list for reordering not found.");
+            return;
+        }
 
         let draggedItem = null;
 
@@ -1353,7 +1361,7 @@ class ArtisticImageProcessor {
         
         const imageData = processedCtx.getImageData(0, 0, processedCanvas.width, processedCanvas.height);
         
-        processingDiv.innerHTML = '<div class="animate-pulse">🎨 正在应用修复算法...</div>';
+        processingDiv.innerHTML = '<div class="animate-pulse">🔄 正在应用修复算法...</div>';
         
         await this.sleep(500);
         
@@ -1578,7 +1586,6 @@ class ArtisticImageProcessor {
         }
     }
 
-    // `startProcessing` for individual tab buttons (unchanged behavior)
     async startProcessing(mode) {
         if (mode === 'splice') {
             if (this.files.length < 2) {
@@ -1600,12 +1607,25 @@ class ArtisticImageProcessor {
             const file = this.files[i];
             const progress = ((i + 1) / totalFiles) * 100;
             
-            this.updateProgress(progress, `Processing: ${file.name}`, i + 1, 0, totalFiles - i - 1);
+            this.updateProgress(progress, `正在处理: ${file.name}`, i + 1, 0, totalFiles - i - 1);
             
-            await this.sleep(500 + Math.random() * 1000); 
-            
-            const result = await this.processFile(file, mode);
-            results.push(result);
+            try {
+                await this.sleep(500 + Math.random() * 1000); 
+                const result = await this.processFile(file, mode);
+                results.push(result);
+            } catch (error) {
+                console.error(`Error processing file ${file.name} in mode ${mode}:`, error);
+                results.push({
+                    originalName: file.name,
+                    processedName: `${file.name.split('.')[0]}_error.${file.type ? file.type.split('/')[1] : 'unknown'}`,
+                    originalUrl: URL.createObjectURL(file),
+                    processedUrl: '#',
+                    type: mode,
+                    size: file.size,
+                    format: file.type ? file.type.split('/')[1] : 'unknown',
+                    error: `处理失败: ${error.message || '未知错误'}`
+                });
+            }
         }
 
         this.results.push(...results);
@@ -1638,7 +1658,7 @@ class ArtisticImageProcessor {
         });
 
         if (selectedOperations.length === 0) {
-            alert('Please select at least one batch operation.');
+            alert('请至少选择一个批量操作项。');
             return;
         }
         
@@ -1654,46 +1674,45 @@ class ArtisticImageProcessor {
         const totalFiles = this.files.length;
         const operations = selectedOperations; 
 
-        // Special handling for 'splice' if it's included in batch operations.
-        // If splice is present, it will process ALL currently uploaded files into one output.
-        // It should ideally be the last operation if combined with other per-file operations,
-        // or the only operation. For simplicity, if splice is in `operations`, 
-        // we assume it's for all uploaded files collectively and will be handled as a single result.
-        const isSpliceInBatch = operations.includes('splice');
-        
-        if (isSpliceInBatch && operations.length > 1) {
-            alert("Warning: 'Image Splice' will combine all uploaded files into ONE image. Other operations in the batch will not apply per-file after splice. Consider running splice separately if you need per-file processing.");
-        }
+        // Handle 'splice' as a special case if it's in the batch and needs to combine all files.
+        // If it's a per-file splice, it will be handled by processFile like others.
+        // Here, we assume 'splice' means combining ALL current files, and it's a *terminal* operation.
+        const isSpliceInBatchAndMultiFile = operations.includes('splice') && this.files.length > 1;
 
+        if (isSpliceInBatchAndMultiFile) {
+            if (operations.indexOf('splice') !== operations.length - 1) {
+                alert("警告：'图像拼接'功能在批量处理中将合并所有文件，并且通常是最后一个操作。如果不是最后一个，其行为可能不符合预期。");
+            }
 
-        if (isSpliceInBatch) {
-            // If splice is in the operations list, execute it first (conceptually) on the whole batch,
-            // then any other operations on its *single* output. This is a simplified approach.
-            // A more complex system would allow splice to act on subsets or have different "modes".
-            this.updateProgress(10, 'Preparing for batch splice...', 0, 0, totalFiles);
+            this.updateProgress(10, '正在准备批量拼接...', 0, 0, totalFiles);
             let spliceResult = await this.processSpliceBatch(this.files, 'splice');
+            
             if (spliceResult.error) {
-                console.error("Batch splice operation failed:", spliceResult.error);
-                finalResults.push(spliceResult); // Record the error result
+                console.error("批量拼接操作失败:", spliceResult.error);
+                finalResults.push(spliceResult); 
             } else {
-                // If splice was successful, chain subsequent operations (if any) to its single output.
-                // Note: The concept of chaining per-file operations *after* a multi-file splice is logically complex.
-                // For this implementation, subsequent operations will run on the *single* spliced image.
                 let currentOutputOfChain = spliceResult;
-                const remainingOperationsAfterSplice = operations.filter(op => op !== 'splice'); // Exclude splice from further per-file looping
+                // Run subsequent operations on the single spliced image
+                const operationsAfterSplice = operations.slice(operations.indexOf('splice') + 1);
 
-                for (const op of remainingOperationsAfterSplice) {
-                    this.updateProgress(50 + (operations.indexOf(op) / operations.length) * 40, `Processing spliced image: ${this.getOperationName(op)}`, 0, 1, 0);
-                    currentOutputOfChain = await this.processFile(currentOutputOfChain, op);
-                    if (currentOutputOfChain.error) {
-                        console.error(`Operation ${op} failed on spliced image:`, currentOutputOfChain.error);
-                        break; // Stop chaining if an operation fails on the spliced image
+                for (const op of operationsAfterSplice) {
+                    this.updateProgress(50 + (operations.indexOf(op) / operations.length) * 40, `正在处理拼接图: ${this.getOperationName(op)}`, 0, 1, 0);
+                    try {
+                        currentOutputOfChain = await this.processFile(currentOutputOfChain, op);
+                        if (currentOutputOfChain.error) {
+                            console.error(`操作 ${op} 在拼接图上失败:`, currentOutputOfChain.error);
+                            break; 
+                        }
+                    } catch (err) {
+                        console.error(`执行操作 ${op} 在拼接图上发生未捕获错误:`, err);
+                        currentOutputOfChain.error = `关键错误: ${err.message || '未知错误'}`;
+                        break;
                     }
                 }
-                finalResults.push(currentOutputOfChain); // Add the final result of the spliced chain
+                finalResults.push(currentOutputOfChain); 
             }
         } else {
-            // Standard per-file batch processing
+            // Standard per-file batch processing (including single-file splice if only one file)
             for (let i = 0; i < totalFiles; i++) {
                 let currentFileToProcess = this.files[i]; 
                 const originalFileInputForResults = this.files[i]; 
@@ -1704,26 +1723,38 @@ class ArtisticImageProcessor {
                     
                     this.updateProgress(
                         progress, 
-                        `${originalFileInputForResults.name} - ${this.getOperationName(operation)}`,
+                        `正在处理: ${originalFileInputForResults.name} - ${this.getOperationName(operation)}`,
                         i * operations.length + j + 1,
                         0,
                         totalFiles * operations.length - (i * operations.length + j + 1)
                     );
                     
-                    await this.sleep(300);
-
-                    // Execute the operation on the current file/result
-                    let resultOfOperation = await this.processFile(currentFileToProcess, operation);
-                    
-                    if (resultOfOperation.error) {
-                        console.error(`Operation '${operation}' failed for ${originalFileInputForResults.name}:`, resultOfOperation.error);
-                        currentFileToProcess = resultOfOperation; // Pass error result to next step or final collection
-                        break; // Stop further operations for this specific file if it failed
-                    } else {
-                        currentFileToProcess = resultOfOperation; // Pass the output of this operation as input to the next
+                    try {
+                        await this.sleep(300);
+                        let resultOfOperation = await this.processFile(currentFileToProcess, operation);
+                        
+                        if (resultOfOperation.error) {
+                            console.error(`操作 '${operation}' 失败 for ${originalFileInputForResults.name}:`, resultOfOperation.error);
+                            currentFileToProcess = resultOfOperation; 
+                            break; 
+                        } else {
+                            currentFileToProcess = resultOfOperation; 
+                        }
+                    } catch (err) {
+                        console.error(`执行操作 '${operation}' 发生未捕获错误 for ${originalFileInputForResults.name}:`, err);
+                        currentFileToProcess = { 
+                            originalName: originalFileInputForResults.name,
+                            processedName: `${originalFileInputForResults.name.split('.')[0]}_${operation}_CRITICAL_ERROR.${originalFileInputForResults.type ? originalFileInputForResults.type.split('/')[1] : 'unknown'}`,
+                            originalUrl: URL.createObjectURL(originalFileInputForResults),
+                            processedUrl: '#',
+                            type: operation,
+                            size: 0,
+                            format: originalFileInputForResults.type ? originalFileInputForResults.type.split('/')[1] : 'unknown',
+                            error: `关键错误: ${err.message || '未知错误'}`
+                        };
+                        break; 
                     }
                 }
-                // Add the final result of this file's operation chain
                 finalResults.push(currentFileToProcess);
             }
         }
@@ -1737,7 +1768,7 @@ class ArtisticImageProcessor {
 
     async processSpliceBatch(files, mode) {
         if (files.length < 2) {
-            return { error: 'Image splicing requires at least 2 images.', format: 'png', type: mode };
+            return { error: '图像拼接需要至少2张图片', format: 'png', type: mode, originalName: 'splice_error', processedName: 'splice_error.png' }; 
         }
         
         try {
@@ -1752,7 +1783,7 @@ class ArtisticImageProcessor {
             );
             
             return {
-                originalName: 'spliced_batch_source', 
+                originalName: '拼接批次源文件', 
                 processedName: splicingResult.processedName,
                 originalUrl: null, 
                 processedUrl: splicingResult.processedUrl,
@@ -1763,9 +1794,9 @@ class ArtisticImageProcessor {
         } catch (error) {
             console.error("Batch splice operation failed:", error);
             return {
-                error: `Image splicing failed: ${error.message || error}`,
-                originalName: 'spliced_batch_source',
-                processedName: 'spliced_error.png',
+                error: `图像拼接失败: ${error.message || error}`,
+                originalName: '拼接批次源文件',
+                processedName: 'splice_error.png',
                 originalUrl: null,
                 processedUrl: '#',
                 type: mode,
@@ -1777,14 +1808,14 @@ class ArtisticImageProcessor {
 
     getOperationName(operation) {
         const names = {
-            convert: 'Format Conversion',
-            compress: 'Compression',
-            resize: 'Resize/Crop',
-            watermark: 'Watermark',
-            filter: 'Art Filter',
-            background: 'Background Add',
-            splice: 'Image Splice',
-            analyze: 'Image Analysis'
+            convert: '格式转换',
+            compress: '压缩优化',
+            resize: '尺寸调整/裁剪',
+            watermark: '水印处理',
+            filter: '艺术滤镜',
+            background: '一键加底',
+            splice: '图像拼接',
+            analyze: '图像分析'
         };
         return names[operation] || operation;
     }
@@ -1796,8 +1827,8 @@ class ArtisticImageProcessor {
         
         return new Promise(async (resolve) => {
             try {
-                // Load the image from the previous step's output or original file.
                 const loadedImage = await this.loadImage(file); 
+                img.src = loadedImage.src; 
                 
                 img.onload = async () => {
                     canvas.width = img.naturalWidth; 
@@ -1807,14 +1838,13 @@ class ArtisticImageProcessor {
                     let compressResult = null;
                     let currentOutputFormat = 'png'; 
 
-                    // Determine the format of the image currently being processed (input to this step).
                     let effectiveInputFormat = 'unknown';
                     if (file instanceof File) {
                         effectiveInputFormat = file.type ? file.type.split('/')[1].toLowerCase() : 'png';
                     } else if (file.format) { 
                         effectiveInputFormat = file.format.toLowerCase();
                     }
-                    currentOutputFormat = effectiveInputFormat; // Default output format is input format
+                    currentOutputFormat = effectiveInputFormat; 
 
 
                     switch(mode) {
@@ -1846,8 +1876,7 @@ class ArtisticImageProcessor {
                             break;
                         case 'background':
                             await this.applyBackground(canvas, ctx, img);
-                            // If resulting canvas has transparency, must be PNG. Otherwise, can be JPEG if original was.
-                            if (this.isImageTransparent(canvas)) {
+                            if (this.isImageTransparent(canvas)) { // Check if transparency is needed for output
                                 currentOutputFormat = 'png'; 
                             } else {
                                 currentOutputFormat = (effectiveInputFormat === 'jpeg' || effectiveInputFormat === 'jpg') ? 'jpeg' : 'png';
@@ -1858,10 +1887,8 @@ class ArtisticImageProcessor {
                             resolve(analysisResult);
                             return; 
                         case 'splice':
-                            console.warn("Splice operation in per-file processFile is simplified. It processes the single input image.");
                             // For a single file, "splice" might just be adding borders or other single-image layout.
-                            // Assuming `createSplicedImage` can handle a single image input for layout purposes.
-                            // If `createSplicedImage` requires an array of images, this will need careful adaptation.
+                            console.warn("Splice operation in per-file processFile is simplified. It processes the single input image.");
                             const singleSpliceResult = await this.createSplicedImage([img], 'vertical', 10, '#f4f1ec', img.naturalWidth + 20, true);
                             currentOutputFormat = singleSpliceResult.format;
                             // Draw the single spliced image back to main canvas for next operation
@@ -1883,12 +1910,11 @@ class ArtisticImageProcessor {
                     
                     const originalNameForOutput = file.name || (file.originalName ? file.originalName : 'processed_image');
                     const baseName = originalNameForOutput.split('.')[0];
-                    const outputFilename = `${baseName}_${mode}.${currentOutputFormat === 'jpeg' ? 'jpg' : currentOutputFormat}`;
+                    const outputFilename = `${baseName}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}.${currentOutputFormat === 'jpeg' ? 'jpg' : currentOutputFormat}`; // Sanitize filename
 
                     resolve({
                         originalName: originalNameForOutput,
                         processedName: outputFilename,
-                        // Ensure originalUrl tracks back to the very first input if possible
                         originalUrl: (file instanceof File) ? URL.createObjectURL(file) : (file.originalUrl || file.processedUrl),
                         processedUrl: processedUrl,
                         type: mode,
@@ -1897,76 +1923,820 @@ class ArtisticImageProcessor {
                     });
                 };
 
+                // Trigger img loading
+                img.src = loadedImage.src;
+
             } catch (error) {
-                console.error(`File processing failed for mode '${mode}':`, error, "Input file:", file);
+                console.error(`文件处理失败 (模式: ${mode}):`, error, "输入文件:", file);
                 const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
                 const originalFormatForError = file.type ? file.type.split('/')[1] : (file.format || 'unknown');
                 resolve({
                     originalName: originalNameForError,
-                    processedName: `${originalNameForError.split('.')[0]}_${mode}_error.${originalFormatForError}`,
+                    processedName: `${originalNameForError.split('.')[0]}_${this.getOperationName(mode).replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '')}_错误.${originalFormatForError}`,
                     originalUrl: (file instanceof File) ? URL.createObjectURL(file) : (file.originalUrl || file.processedUrl),
                     processedUrl: '#', 
                     type: mode,
                     size: file.size || 0,
                     format: originalFormatForError,
-                    error: `Processing failed: ${error.message || error}`
+                    error: `处理失败: ${error.message || error}`
                 });
             }
         });
     }
 
-    // Helper to check if an image (HTMLImageElement or HTMLCanvasElement) has transparent pixels
-    isImageTransparent(imgOrCanvas) {
-        if (!imgOrCanvas) return false;
+    async applyCompression(canvas, ctx, img, file) {
+        const level = document.getElementById('compressLevel')?.value;
+        const targetSizeKB = parseInt(document.getElementById('targetSize')?.value || '0');
+        let quality = 0.7; // Default quality for medium compression
+        
+        switch(level) {
+            case 'light': quality = 0.9; break;
+            case 'medium': quality = 0.7; break;  
+            case 'heavy': quality = 0.5; break;
+            case 'custom': quality = parseInt(document.getElementById('customQuality')?.value || '70') / 100; break;
+        }
 
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
+        const selectedOutputFormat = document.getElementById('compressOutputFormat')?.value || 'original';
+        let effectiveOutputFormat = file.type ? file.type.split('/')[1].toLowerCase() : 'png'; // Start with original format based on input `file`
 
-        if (imgOrCanvas instanceof HTMLImageElement) {
-            tempCanvas.width = imgOrCanvas.naturalWidth;
-            tempCanvas.height = imgOrCanvas.naturalHeight;
-            try {
-                tempCtx.drawImage(imgOrCanvas, 0, 0);
-            } catch (e) {
-                // CORS or security error: Cannot read pixel data.
-                // Fallback: If original image was PNG or WebP, assume it *could* be transparent.
-                if (imgOrCanvas.src.includes('data:image/png') || imgOrCanvas.src.includes('data:image/webp')) {
-                    return true;
-                }
-                if (imgOrCanvas.src.startsWith('blob:')) {
-                     // Try to infer type from blob URL extension if possible
-                    const urlParts = imgOrCanvas.src.split('.');
-                    const extension = urlParts[urlParts.length - 1]?.toLowerCase();
-                    if (extension === 'png' || extension === 'webp') return true;
-                }
-                console.warn("Could not check image transparency via pixel data (possibly CORS):", e);
-                return false; 
-            }
-        } else if (imgOrCanvas instanceof HTMLCanvasElement) {
-            tempCanvas.width = imgOrCanvas.width;
-            tempCanvas.height = imgOrCanvas.height;
-            tempCtx.drawImage(imgOrCanvas, 0, 0);
+        if (selectedOutputFormat !== 'original') {
+            effectiveOutputFormat = selectedOutputFormat;
         } else {
-            // For File objects, rely on MIME type.
-            if (imgOrCanvas.type && (imgOrCanvas.type.includes('png') || imgOrCanvas.type.includes('webp'))) {
-                return true;
+            // If 'original' is chosen, check the actual transparency of the canvas content.
+            // If the current image has transparency, it must remain PNG/WebP to preserve it.
+            // If it doesn't have transparency, JPEG is a good default for compression.
+            if (this.isImageTransparent(canvas)) { // Check canvas, not original file directly
+                effectiveOutputFormat = (effectiveOutputFormat === 'webp') ? 'webp' : 'png'; // Prefer WebP if it was originally, else PNG
+            } else {
+                effectiveOutputFormat = (effectiveInputFormat === 'jpeg' || effectiveInputFormat === 'jpg') ? 'jpeg' : 'jpeg'; // Default to JPEG if no transparency needed and not originally transparent format
             }
-            return false;
+        }
+
+        if (targetSizeKB > 0) {
+            const targetSizeBytes = targetSizeKB * 1024;
+            const finalQuality = await this.findOptimalQuality(canvas, targetSizeBytes, quality, `image/${effectiveOutputFormat}`);
+            return { quality: finalQuality, targetSizeKB, useTargetSize: true, format: effectiveOutputFormat };
+        }
+        
+        return { quality: quality, targetSizeKB: 0, useTargetSize: false, format: effectiveOutputFormat };
+    }
+
+
+    async findOptimalQuality(canvas, targetSizeBytes, initialQuality, targetMimeType) {
+        let minQuality = 0.1;
+        let maxQuality = 1.0;
+        let bestQuality = initialQuality;
+        let iterations = 0;
+        const maxIterations = 15; 
+    
+        const format = targetMimeType.split('/')[1];
+    
+        if (format === 'png') {
+            // PNG compression is mostly lossless. Trying to hit specific size with `quality` parameter is unreliable.
+            // If the goal is a smaller PNG, it needs specialized PNG optimization (e.g., reducing color palette, which Canvas.toDataURL doesn't control).
+            // So, for PNG, we return max quality and accept its natural size.
+            return 1.0; 
+        }
+    
+        let currentSize = this.getCanvasSizeBytes(canvas, format, initialQuality);
+        
+        if (currentSize <= targetSizeBytes) {
+            return initialQuality;
+        }
+    
+        while (iterations < maxIterations && Math.abs(maxQuality - minQuality) > 0.001) { 
+            const testQuality = (minQuality + maxQuality) / 2;
+            const testSize = this.getCanvasSizeBytes(canvas, format, testQuality);
+            
+            if (testSize <= targetSizeBytes) {
+                minQuality = testQuality;
+                bestQuality = testQuality;
+            } else {
+                maxQuality = testQuality;
+            }
+            iterations++;
+        }
+    
+        currentSize = this.getCanvasSizeBytes(canvas, format, bestQuality);
+        while (currentSize > targetSizeBytes && bestQuality > 0.05) { 
+            bestQuality = Math.max(0.05, bestQuality - 0.005); 
+            currentSize = this.getCanvasSizeBytes(canvas, format, bestQuality);
+        }
+    
+        return Math.max(0.05, Math.min(1.0, bestQuality)); 
+    }
+    
+    getCanvasSizeBytes(canvas, format, quality) {
+        const mimeType = `image/${format === 'jpg' ? 'jpeg' : format}`; 
+        
+        let dataURL;
+        try {
+            const actualQuality = (format === 'png' || (format === 'webp' && !this.isImageTransparent(canvas))) ? undefined : quality; 
+            dataURL = canvas.toDataURL(mimeType, actualQuality);
+        } catch (e) {
+            console.error(`Error converting canvas to ${mimeType} for size calculation:`, e);
+            return Infinity; 
+        }
+        
+        const base64String = dataURL.split(',')[1];
+        if (!base64String) {
+            console.warn(`Could not get base64 string for format ${format} from dataURL.`);
+            return Infinity;
+        }
+        return Math.round(base64String.length * 0.75); 
+    }
+
+    async applyBackground(canvas, ctx, img) {
+        const backgroundTypeSelect = document.getElementById('backgroundType');
+        const imagePositionSelect = document.getElementById('imagePosition');
+        if (!backgroundTypeSelect || !imagePositionSelect) return;
+
+        const type = backgroundTypeSelect.value;
+        const position = imagePositionSelect.value;
+        
+        const originalCanvasContent = document.createElement('canvas');
+        const originalContentCtx = originalCanvasContent.getContext('2d');
+        originalCanvasContent.width = canvas.width;
+        originalCanvasContent.height = canvas.height;
+        originalContentCtx.drawImage(canvas, 0, 0);
+        
+        const backgroundCanvas = document.createElement('canvas');
+        const backgroundCtx = backgroundCanvas.getContext('2d');
+        
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+
+        let bgColor = '#f4f1ec'; 
+        
+        if (type === 'solid') {
+            const backgroundColor1Input = document.getElementById('backgroundColor1');
+            if (!backgroundColor1Input) return;
+            bgColor = backgroundColor1Input.value;
+            backgroundCtx.fillStyle = bgColor;
+            backgroundCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+        } else if (type === 'gradient') {
+            const gradientStartInput = document.getElementById('gradientStart');
+            const gradientEndInput = document.getElementById('gradientEnd');
+            const gradientDirectionSelect = document.getElementById('gradientDirection');
+            if (!gradientStartInput || !gradientEndInput || !gradientDirectionSelect) return;
+
+            const startColor = gradientStartInput.value;
+            const endColor = gradientEndInput.value;
+            const direction = gradientDirectionSelect.value;
+            
+            let gradient;
+            switch(direction) {
+                case 'horizontal':
+                    gradient = backgroundCtx.createLinearGradient(0, 0, backgroundCanvas.width, 0);
+                    break;
+                case 'vertical':
+                    gradient = backgroundCtx.createLinearGradient(0, 0, 0, backgroundCanvas.height);
+                    break;
+                case 'diagonal':
+                    gradient = backgroundCtx.createLinearGradient(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+                    break;
+                case 'radial':
+                    gradient = backgroundCtx.createRadialGradient(
+                        backgroundCanvas.width/2, backgroundCanvas.height/2, 0,
+                        backgroundCanvas.width/2, backgroundCanvas.height/2, Math.max(backgroundCanvas.width, backgroundCanvas.height)/2
+                    );
+                    break;
+            }
+            
+            gradient.addColorStop(0, startColor);
+            gradient.addColorStop(1, endColor);
+            backgroundCtx.fillStyle = gradient;
+            backgroundCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+        } else if (type === 'random') {
+            const colors = ['#9BB5A6', '#C4A484', '#D4CFC9', '#B8968C', '#E6D7FF', '#B8F2FF', '#FFD6CC', '#FFF4CC'];
+            bgColor = colors[Math.floor(Math.random() * colors.length)];
+            backgroundCtx.fillStyle = bgColor;
+            backgroundCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+        }
+        
+        let drawX = 0, drawY = 0, drawWidth = originalCanvasContent.width, drawHeight = originalCanvasContent.height;
+
+        switch(position) {
+            case 'center':
+                drawX = (backgroundCanvas.width - originalCanvasContent.width) / 2;
+                drawY = (backgroundCanvas.height - originalCanvasContent.height) / 2;
+                break;
+            case 'stretch':
+                drawWidth = backgroundCanvas.width;
+                drawHeight = backgroundCanvas.height;
+                break;
+            case 'fit':
+                const scaleFit = Math.min(backgroundCanvas.width / originalCanvasContent.width, backgroundCanvas.height / originalCanvasContent.height);
+                drawWidth = originalCanvasContent.width * scaleFit;
+                drawHeight = originalCanvasContent.height * scaleFit;
+                drawX = (backgroundCanvas.width - drawWidth) / 2;
+                drawY = (backgroundCanvas.height - drawHeight) / 2;
+                break;
+            case 'cover':
+                const scaleCover = Math.max(backgroundCanvas.width / originalCanvasContent.width, backgroundCanvas.height / originalCanvasContent.height);
+                drawWidth = originalCanvasContent.width * scaleCover;
+                drawHeight = originalCanvasContent.height * scaleCover;
+                drawX = (backgroundCanvas.width - drawWidth) / 2;
+                drawY = (backgroundCanvas.height - drawHeight) / 2;
+                break;
+        }
+        
+        backgroundCtx.drawImage(originalCanvasContent, drawX, drawY, drawWidth, drawHeight);
+
+        canvas.width = backgroundCanvas.width;
+        canvas.height = backgroundCanvas.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        ctx.drawImage(backgroundCanvas, 0, 0); 
+    }
+
+    async processSplice() {
+        if (this.isProcessing || this.files.length < 2) return;
+
+        this.isProcessing = true;
+        this.showProgress();
+        
+        const spliceModeSelect = document.getElementById('spliceMode');
+        const imageSpacingInput = document.getElementById('imageSpacing');
+        const spliceBackgroundInput = document.getElementById('spliceBackground');
+        const spliceWidthInput = document.getElementById('spliceWidth');
+        const maintainAspectCheckbox = document.getElementById('maintainAspect');
+
+        if (!spliceModeSelect || !imageSpacingInput || !spliceBackgroundInput || !spliceWidthInput || !maintainAspectCheckbox) {
+            console.error("Missing UI elements for splice operation.");
+            this.hideProgress();
+            this.isProcessing = false;
+            alert("拼接功能UI元素缺失，无法执行。");
+            return;
+        }
+
+        const mode = spliceModeSelect.value;
+        const spacing = parseInt(imageSpacingInput.value);
+        const bgColor = spliceBackgroundInput.value;
+        const outputWidth = parseInt(spliceWidthInput.value);
+        const maintainAspect = maintainAspectCheckbox.checked;
+        
+        this.updateProgress(20, '正在加载图片...', 0, 1, this.files.length);
+        
+        try {
+            const images = await Promise.all(this.files.map(file => this.loadImage(file)));
+            
+            this.updateProgress(50, '正在拼接图片...', 0, 1, 0);
+            
+            const result = await this.createSplicedImage(images, mode, spacing, bgColor, outputWidth, maintainAspect);
+            
+            this.results.push(result);
+            this.showResults();
+        } catch (error) {
+            console.error("Error during splice operation:", error);
+            alert(`图像拼接失败: ${error.message}`);
+        } finally {
+            this.hideProgress();
+            this.isProcessing = false;
+            this.updateUI();
+        }
+    }
+
+    async createSplicedImage(images, mode, spacing, bgColor, outputWidth, maintainAspect) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (images.length === 0) {
+            throw new Error("No images to splice.");
+        }
+
+        const validImages = images.filter(img => img instanceof HTMLImageElement && img.naturalWidth > 0 && img.naturalHeight > 0);
+        if (validImages.length === 0) {
+            throw new Error("No valid images could be loaded for splicing.");
+        }
+
+        let rows = 1, cols = validImages.length; 
+
+        const scaledImages = validImages.map(img => {
+            let width = img.naturalWidth;
+            let height = img.naturalHeight;
+
+            if (mode === 'horizontal' || mode === 'grid') {
+                const tempWidth = (outputWidth - spacing * (cols + 1)) / cols; 
+                if (maintainAspect) {
+                    width = tempWidth;
+                    height = (img.naturalHeight * width) / img.naturalWidth;
+                } else {
+                    width = tempWidth; 
+                }
+            } else if (mode === 'vertical') {
+                width = outputWidth - spacing * 2;
+                if (maintainAspect) {
+                    height = (img.naturalHeight * width) / img.naturalWidth;
+                }
+            }
+            return { img, width: Math.round(width), height: Math.round(height) };
+        });
+
+        if (mode === 'horizontal') {
+            canvas.width = scaledImages.reduce((sum, p) => sum + p.width, 0) + spacing * (scaledImages.length + 1);
+            canvas.height = Math.max(...scaledImages.map(p => p.height)) + spacing * 2;
+        } else if (mode === 'vertical') {
+            canvas.width = Math.max(...scaledImages.map(p => p.width)) + spacing * 2;
+            canvas.height = scaledImages.reduce((sum, p) => sum + p.height, 0) + spacing * (scaledImages.length + 1);
+        } else if (mode === 'grid') {
+            cols = parseInt(document.getElementById('gridColumns')?.value || '2');
+            if (cols === 0) cols = 1; 
+            
+            const gridCellWidth = (outputWidth - spacing * (cols + 1)) / cols;
+            
+            scaledImages.forEach(p => {
+                let currentImgWidth = gridCellWidth;
+                let currentImgHeight = p.img.naturalHeight;
+
+                if (maintainAspect) {
+                    currentImgHeight = (p.img.naturalHeight * currentImgWidth) / p.img.naturalWidth;
+                }
+                p.width = Math.round(currentImgWidth);
+                p.height = Math.round(currentImgHeight);
+            });
+
+            canvas.width = outputWidth; 
+            let currentX = spacing;
+            let currentY = spacing;
+            let currentRowHeight = 0;
+            let totalHeight = spacing; 
+            
+            for (let i = 0; i < scaledImages.length; i++) {
+                const imgData = scaledImages[i];
+                if (currentX + imgData.width + spacing > canvas.width && i !== 0) { 
+                    totalHeight += currentRowHeight + spacing; 
+                    currentY += currentRowHeight + spacing;
+                    currentX = spacing; 
+                    currentRowHeight = 0; 
+                }
+                currentRowHeight = Math.max(currentRowHeight, imgData.height);
+                currentX += imgData.width + spacing;
+            }
+            totalHeight += currentRowHeight + spacing; 
+            canvas.height = totalHeight;
+        } else if (mode === 'custom') {
+            console.warn("Custom splice mode requires custom layout logic. Defaulting to vertical arrangement.");
+            return this.createSplicedImage(images, 'vertical', spacing, bgColor, outputWidth, maintainAspect);
+        }
+
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        currentX = spacing;
+        currentY = spacing;
+        currentRowMaxHeight = 0;
+
+        for (let i = 0; i < scaledImages.length; i++) {
+            const { img, width, height } = scaledImages[i];
+            
+            if (mode === 'grid') {
+                const gridColumns = parseInt(document.getElementById('gridColumns')?.value || '2');
+                if (i > 0 && (i % gridColumns === 0)) { 
+                    currentX = spacing;
+                    currentY += currentRowMaxHeight + spacing;
+                    currentRowMaxHeight = 0; 
+                }
+                currentRowMaxHeight = Math.max(currentRowMaxHeight, height); 
+            }
+
+            ctx.drawImage(img, currentX, currentY, width, height);
+            
+            if (mode === 'horizontal') {
+                currentX += width + spacing;
+            } else if (mode === 'vertical') {
+                currentY += height + spacing;
+            } else if (mode === 'grid') {
+                currentX += width + spacing;
+            }
+        }
+        
+        const dataURL = canvas.toDataURL('image/png', 0.9); 
+        
+        return {
+            img: canvas, // Return the canvas itself for chaining in batch processing
+            originalName: 'spliced_images',
+            processedName: `spliced_${mode}_${Date.now()}.png`,
+            originalUrl: null, 
+            processedUrl: dataURL,
+            type: 'splice',
+            size: this.getCanvasSizeBytes(canvas, 'png', 0.9),
+            format: 'png'
+        };
+    }
+
+
+    async analyzeImage(file, img) {
+        const analyzeColorsCheckbox = document.getElementById('analyzeColors');
+        const analyzeDimensionsCheckbox = document.getElementById('analyzeDimensions');
+        const analyzeFileInfoCheckbox = document.getElementById('analyzeFileInfo');
+        const analyzeQualityCheckbox = document.getElementById('analyzeQuality');
+        const colorCountInput = document.getElementById('colorCount');
+
+        if (!analyzeColorsCheckbox || !analyzeDimensionsCheckbox || !analyzeFileInfoCheckbox || !analyzeQualityCheckbox || !colorCountInput) {
+            console.error("Missing UI elements for analyze operation.");
+            return { error: '分析功能UI元素缺失' };
+        }
+
+        const analyzeColors = analyzeColorsCheckbox.checked;
+        const analyzeDimensions = analyzeDimensionsCheckbox.checked;
+        const analyzeFileInfo = analyzeFileInfoCheckbox.checked;
+        const analyzeQuality = analyzeQualityCheckbox.checked;
+        const colorCount = parseInt(colorCountInput.value);
+        
+        const analysis = {
+            originalName: file.name || (file.originalName ? file.originalName : 'analyzed_image'),
+            processedName: `分析报告_${(file.name || file.originalName).replace(/\.[^/.]+$/, '.json')}`,
+            originalUrl: (file instanceof File) ? URL.createObjectURL(file) : (file.originalUrl || file.processedUrl),
+            processedUrl: null, 
+            type: 'analyze',
+            size: 0, 
+            format: 'json',
+            analysis: {}
+        };
+        
+        if (analyzeDimensions) {
+            analysis.analysis.dimensions = {
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+                aspectRatio: (img.naturalWidth / img.naturalHeight).toFixed(2),
+                megapixels: ((img.naturalWidth * img.naturalHeight) / 1000000).toFixed(2)
+            };
+        }
+        
+        if (analyzeFileInfo) {
+            analysis.analysis.fileInfo = {
+                name: file.name || (file.originalName ? file.originalName : 'N/A'),
+                size: file.size || 0,
+                sizeFormatted: this.formatFileSize(file.size || 0),
+                type: file.type || (file.format ? `image/${file.format}` : 'unknown'),
+                lastModified: (file instanceof File && file.lastModified) ? new Date(file.lastModified).toISOString() : 'N/A'
+            };
+        }
+        
+        if (analyzeColors) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            
+            try {
+                ctx.drawImage(img, 0, 0);
+                analysis.analysis.colors = this.extractDominantColors(ctx, canvas.width, canvas.height, colorCount);
+            } catch (e) {
+                console.error("Error extracting colors (possibly CORS):", e);
+                analysis.analysis.colors = { error: "无法提取颜色 (可能受CORS限制)" };
+            }
+        }
+        
+        if (analyzeQuality) {
+            analysis.analysis.quality = await this.assessImageQuality(img, file);
+        }
+        
+        this.displayAnalysisResults(analysis.analysis);
+        
+        return analysis;
+    }
+
+    extractDominantColors(ctx, width, height, count) {
+        const pixelCount = width * height;
+        const sampleRatio = Math.min(1, 1000000 / pixelCount); 
+        const step = Math.max(1, Math.floor(1 / sampleRatio));
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        const colorMap = new Map();
+        
+        for (let i = 0; i < data.length; i += 4 * step) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            
+            if (a > 128) { 
+                const quantizedR = Math.floor(r / 32) * 32;
+                const quantizedG = Math.floor(g / 32) * 32;
+                const quantizedB = Math.floor(b / 32) * 32;
+                
+                const colorKey = `${quantizedR},${quantizedG},${quantizedB}`;
+                colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
+            }
+        }
+        
+        const sortedColors = Array.from(colorMap.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, count);
+        
+        return sortedColors.map(([color, frequency]) => {
+            const [r, g, b] = color.split(',').map(Number);
+            const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+            const percentage = ((frequency / pixelCount) * 100).toFixed(1); 
+            
+            return {
+                hex,
+                rgb: `rgb(${r}, ${g}, ${b})`,
+                frequency,
+                percentage: percentage + '%'
+            };
+        });
+    }
+
+    async assessImageQuality(img, file) {
+        const originalSize = file.size || 0; 
+        const theoreticalSize = img.naturalWidth * img.naturalHeight * 3; 
+        const compressionRatio = theoreticalSize > 0 ? ((originalSize / theoreticalSize) * 100).toFixed(1) + '%' : 'N/A';
+
+        return {
+            resolution: `${img.naturalWidth}x${img.naturalHeight}`,
+            pixelCount: img.naturalWidth * img.naturalHeight,
+            density: originalSize > 0 ? (img.naturalWidth * img.naturalHeight / (originalSize / 1024)).toFixed(2) + ' pixels/KB' : 'N/A',
+            compressionRatio: compressionRatio,
+            estimated: '基于文件大小和像素数量的估算'
+        };
+    }
+
+    displayAnalysisResults(analysis) {
+        const resultsDiv = document.getElementById('analyzeResults');
+        const contentDiv = document.getElementById('analyzeResultsContent');
+        
+        if (!resultsDiv || !contentDiv) return;
+
+        let html = '';
+        
+        if (analysis.dimensions)  {
+            html += `
+                <div class="morandi-card rounded-2xl p-6">
+                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
+                        📐 尺寸信息
+                        <span class="ml-2 text-sm font-normal text-morandi-shadow">Dimensions</span>
+                    </h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="p-3 bg-gradient-to-br from-macaron-mint to-white rounded-xl">
+                            <div class="text-morandi-shadow">宽度</div>
+                            <div class="font-bold text-morandi-deep">${analysis.dimensions.width}px</div>
+                        </div>
+                        <div class="p-3 bg-gradient-to-br from-macaron-peach to-white rounded-xl">
+                            <div class="text-morandi-shadow">高度</div>
+                            <div class="font-bold text-morandi-deep">${analysis.dimensions.height}px</div>
+                        </div>
+                        <div class="p-3 bg-gradient-to-br from-macaron-lavender to-white rounded-xl">
+                            <div class="text-morandi-shadow">宽高比</div>
+                            <div class="font-bold text-morandi-deep">${analysis.dimensions.aspectRatio}</div>
+                        </div>
+                        <div class="p-3 bg-gradient-to-br from-macaron-lemon to-white rounded-xl">
+                            <div class="text-morandi-shadow">总像素</div>
+                            <div class="font-bold text-morandi-deep">${analysis.dimensions.megapixels}MP</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (analysis.fileInfo) {
+            html += `
+                <div class="morandi-card rounded-2xl p-6">
+                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
+                        📁 文件信息
+                        <span class="ml-2 text-sm font-normal text-morandi-shadow">File Info</span>
+                    </h4>
+                    <div class="text-sm space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-morandi-pearl to-white rounded-xl">
+                            <span class="text-morandi-shadow">文件名</span>
+                            <span class="font-medium text-morandi-deep">${analysis.fileInfo.name}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-morandi-cloud to-white rounded-xl">
+                            <span class="text-morandi-shadow">文件大小</span>
+                            <span class="font-medium text-morandi-deep">${analysis.fileInfo.sizeFormatted}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-morandi-mist to-white rounded-xl">
+                            <span class="text-morandi-shadow">文件类型</span>
+                            <span class="font-medium text-morandi-deep">${analysis.fileInfo.type}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (analysis.colors) {
+            const colorBlocks = Array.isArray(analysis.colors) ? analysis.colors.map(color => 
+                `<div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-white to-morandi-pearl rounded-xl">
+                    <div class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background: ${color.hex}"></div>
+                    <div class="flex-1">
+                        <div class="font-medium text-morandi-deep">${color.hex}</div>
+                        <div class="text-xs text-morandi-shadow">${color.percentage}</div>
+                    </div>
+                </div>`
+            ).join('') : `<p class="text-xs text-red-500">无法显示颜色信息: ${analysis.colors.error || '未知错误'}</p>`;
+            
+            html += `
+                <div class="morandi-card rounded-2xl p-6">
+                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
+                        🎨 主色调分析
+                        <span class="ml-2 text-sm font-normal text-morandi-shadow">Color Palette</span>
+                    </h4>
+                    <div class="space-y-3">
+                        ${colorBlocks}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (analysis.quality) {
+            html += `
+                <div class="morandi-card rounded-2xl p-6">
+                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
+                        ⭐ 图像质量评估
+                        <span class="ml-2 text-sm font-normal text-morandi-shadow">Quality Assessment</span>
+                    </h4>
+                    <div class="text-sm space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-macaron-mint to-white rounded-xl">
+                            <span class="text-morandi-shadow">像素密度</span>
+                            <span class="font-medium text-morandi-deep">${analysis.quality.density}</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-macaron-peach to-white rounded-xl">
+                            <span class="text-morandi-shadow">压缩比</span>
+                            <span class="font-medium text-morandi-deep">${analysis.quality.compressionRatio}</span>
+                        </div>
+                        <div class="p-3 bg-gradient-to-r from-macaron-lavender to-white rounded-xl">
+                            <div class="text-xs text-morandi-shadow italic">${analysis.quality.estimated}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        contentDiv.innerHTML = html;
+        resultsDiv.classList.remove('hidden');
+    }
+
+    async loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = (e) => {
+                console.error("Image loading error:", e, file);
+                reject(new Error(`无法加载图片: ${file.name || '未知文件'}`));
+            };
+            // Determine source based on file type
+            if (file instanceof File) {
+                img.src = URL.createObjectURL(file);
+            } else if (file && typeof file.processedUrl === 'string' && (file.processedUrl.startsWith('data:') || file.processedUrl.startsWith('blob:'))) {
+                img.src = file.processedUrl;
+            } else {
+                reject(new Error('无效的文件类型或来源。'));
+            }
+        });
+    }
+
+    showProgress() {
+        const progressSection = document.getElementById('progressSection');
+        if (progressSection) progressSection.classList.remove('hidden');
+    }
+
+    hideProgress() {
+        const progressSection = document.getElementById('progressSection');
+        if (progressSection) progressSection.classList.add('hidden');
+    }
+
+    updateProgress(percent, task, completed, processing, pending) {
+        const progressBar = document.getElementById('progressBar');
+        const totalProgress = document.getElementById('totalProgress');
+        const currentTask = document.getElementById('currentTask');
+        const completedCount = document.getElementById('completed');
+        const processingCount = document.getElementById('processing');
+        const pendingCount = document.getElementById('pending');
+
+        if (progressBar) progressBar.style.width = percent + '%';
+        if (totalProgress) totalProgress.textContent = Math.round(percent) + '%';
+        if (currentTask) currentTask.textContent = task;
+        if (completedCount !== undefined) completedCount.textContent = completed;
+        if (processingCount !== undefined) processingCount.textContent = processing;
+        if (pendingCount !== undefined) pendingCount.textContent = pending;
+    }
+
+    showResults() {
+        const section = document.getElementById('resultsSection');
+        const grid = document.getElementById('resultsGrid');
+        
+        if (!section || !grid) return;
+
+        section.classList.remove('hidden');
+        grid.innerHTML = '';
+        
+        this.results.forEach((result, index) => {
+            const resultItem = this.createResultItem(result, index);
+            grid.appendChild(resultItem);
+        });
+    }
+
+    createResultItem(result, index) {
+        const div = document.createElement('div');
+        div.className = 'result-item morandi-card rounded-2xl p-6 relative overflow-hidden';
+        
+        const typeText = this.getOperationName(result.type);
+        const typeColors = {
+            convert: 'from-van-gogh-blue to-monet-water',
+            compress: 'from-morandi-sage to-morandi-dust',
+            resize: 'from-morandi-clay to-morandi-dust',
+            watermark: 'from-macaron-lavender to-macaron-mint',
+            filter: 'from-macaron-peach to-macaron-rose',
+            background: 'from-monet-lily to-macaron-lavender',
+            splice: 'from-morandi-sage to-van-gogh-blue',
+            analyze: 'from-macaron-mint to-macaron-peach'
+        };
+        const typeColor = typeColors[result.type] || 'from-morandi-shadow to-morandi-deep';
+        
+        // Ensure URLs are valid strings before using them in src. Handle errors gracefully.
+        const originalImgSrc = result.originalUrl && typeof result.originalUrl === 'string' ? result.originalUrl : '#';
+        const processedImgSrc = result.processedUrl && typeof result.processedUrl === 'string' ? result.processedUrl : '#';
+
+        div.innerHTML = `
+            <div class="mb-4">
+                <span class="inline-block px-4 py-2 text-xs font-medium text-white bg-gradient-to-r ${typeColor} rounded-full shadow-sm">
+                    ${typeText}
+                </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <p class="text-xs text-morandi-shadow mb-2 font-medium">处理前</p>
+                    <div class="relative overflow-hidden rounded-xl border-2 border-morandi-cloud">
+                        <img src="${originalImgSrc}" alt="原图" class="w-full h-20 object-cover ${originalImgSrc === '#' ? 'bg-gray-200' : ''}">
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs text-morandi-shadow mb-2 font-medium">处理后</p>
+                    <div class="relative overflow-hidden rounded-xl border-2 border-morandi-sage">
+                        <img src="${processedImgSrc}" alt="处理后" class="w-full h-20 object-cover ${processedImgSrc === '#' ? 'bg-gray-200' : ''}">
+                    </div>
+                </div>
+            </div>
+            ${result.size && result.size !== Infinity ? `<p class="text-xs text-morandi-shadow mb-4 font-medium">文件大小: <span class="text-morandi-deep">${this.formatFileSize(result.size)}</span></p>` : ''}
+            ${result.error ? `<p class="text-xs text-red-500 mb-4 p-2 bg-red-50 rounded-lg">⚠️ ${result.error}</p>` : ''}
+            <div class="flex space-x-3">
+                <button onclick="app.downloadSingle(${index})" 
+                        class="flex-1 btn-primary py-3 rounded-xl text-sm font-medium transition-all shadow-sm ${processedImgSrc === '#' || result.error ? 'opacity-50 cursor-not-allowed' : ''}" ${processedImgSrc === '#' || result.error ? 'disabled' : ''}>
+                    <span class="relative z-10">下载</span>
+                </button>
+                <button onclick="app.previewImage('${processedImgSrc}', '${result.processedName}')" 
+                        class="flex-1 btn-secondary py-3 rounded-xl text-sm font-medium transition-all shadow-sm ${processedImgSrc === '#' || result.error ? 'opacity-50 cursor-not-allowed' : ''}" ${processedImgSrc === '#' || result.error ? 'disabled' : ''}>
+                    预览
+                </button>
+            </div>
+        `;
+        
+        return div;
+    }
+
+    downloadSingle(index) {
+        const result = this.results[index];
+        if (result && result.processedUrl && result.processedUrl !== '#') {
+            this.downloadImage(result.processedUrl, result.processedName);
+        } else {
+            alert('处理后的图片无效，无法下载。');
+        }
+    }
+
+    downloadImage(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    async downloadAll() {
+        if (this.results.length === 0) {
+            alert('没有可下载的处理结果。');
+            return;
+        }
+
+        const zip = new JSZip();
+        
+        for (const result of this.results) {
+            if (result.processedUrl && result.processedUrl !== '#') {
+                try {
+                    const blob = await (result.processedUrl.startsWith('blob:') ? fetch(result.processedUrl).then(r => r.blob()) : this.dataURLtoBlob(result.processedUrl));
+                    zip.file(result.processedName, blob);
+                } catch (error) {
+                    console.error(`Failed to add ${result.processedName} to zip:`, error);
+                    alert(`部分文件下载失败: ${result.processedName}`);
+                }
+            } else {
+                console.warn(`Skipping download for invalid result: ${result.processedName}`);
+            }
         }
 
         try {
-            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-            for (let i = 3; i < imageData.data.length; i += 4) {
-                if (imageData.data[i] < 255) {
-                    return true;
-                }
-            }
-        } catch (e) {
-            console.warn("Could not read pixel data for transparency check:", e);
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipUrl = URL.createObjectURL(zipBlob);
+            
+            const currentTime = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+            this.downloadImage(zipUrl, `loki_atelier_${currentTime}.zip`);
+        } catch (error) {
+            console.error("Error generating zip file:", error);
+            alert(`生成压缩包失败: ${error.message}`);
         }
-        return false;
     }
-
 
     // Helper to convert data URL to Blob for JSZip
     dataURLtoBlob(dataurl) {
@@ -1982,6 +2752,10 @@ class ArtisticImageProcessor {
     }
 
     previewImage(url, name) {
+        if (!url || url === '#') {
+            alert('预览图像无效。');
+            return;
+        }
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm';
         modal.innerHTML = `
@@ -1990,7 +2764,7 @@ class ArtisticImageProcessor {
                     <div class="p-6 border-b border-morandi-cloud">
                         <div class="flex justify-between items-center">
                             <h3 class="serif-font text-xl font-medium text-morandi-deep">${name}</h3>
-                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.parentElement.remove()" 
+                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
                                     class="text-morandi-shadow hover:text-morandi-deep transition-colors p-2">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -2013,7 +2787,10 @@ class ArtisticImageProcessor {
     }
 
     previewBatch() {
-        if (this.files.length === 0) return;
+        if (this.files.length === 0) {
+            alert('没有文件可以预览批量操作。请先上传文件。');
+            return;
+        }
         
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm';
@@ -2022,73 +2799,73 @@ class ArtisticImageProcessor {
                 <div class="morandi-card rounded-3xl overflow-hidden shadow-2xl">
                     <div class="section-header">
                         <h3 class="serif-font text-2xl font-semibold text-morandi-deep text-center">
-                            🎨 Batch Processing Preview
+                            🎨 批量处理预览
                             <span class="block text-sm font-normal text-morandi-shadow mt-2">Batch Processing Preview</span>
                         </h3>
                     </div>
                     <div class="p-6">
                         <div class="space-y-4 text-morandi-deep">
                             <div class="p-4 bg-gradient-to-r from-macaron-mint to-macaron-lavender rounded-xl">
-                                <h4 class="font-medium mb-2">📋 Processing Flow</h4>
+                                <h4 class="font-medium mb-2">📋 处理流程</h4>
                                 <div class="text-sm space-y-1">
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-van-gogh-blue text-white rounded-full flex items-center justify-center text-xs">1</span>
-                                        <span>Format Conversion</span>
+                                        <span>格式转换</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-morandi-sage text-white rounded-full flex items-center justify-center text-xs">2</span>
-                                        <span>Compression Optimization</span>
+                                        <span>压缩优化</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-morandi-dust text-white rounded-full flex items-center justify-center text-xs">3</span>
-                                        <span>Resize/Crop</span>
+                                        <span>尺寸调整</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-morandi-clay text-white rounded-full flex items-center justify-center text-xs">4</span>
-                                        <span>Watermark Handling</span>
+                                        <span>水印处理</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-monet-lily text-white rounded-full flex items-center justify-center text-xs">5</span>
-                                        <span>Art Filters</span>
+                                        <span>艺术滤镜</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-macaron-lemon text-white rounded-full flex items-center justify-center text-xs">6</span>
-                                        <span>Add Background</span>
+                                        <span>一键加底</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-van-gogh-blue text-white rounded-full flex items-center justify-center text-xs">7</span>
-                                        <span>Image Splice</span>
+                                        <span>图像拼接</span>
                                     </div>
                                     <div class="flex items-center space-x-2">
                                         <span class="w-6 h-6 bg-morandi-stone text-white rounded-full flex items-center justify-center text-xs">8</span>
-                                        <span>Image Analysis</span>
+                                        <span>图像分析</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="p-4 bg-gradient-to-r from-macaron-peach to-macaron-rose rounded-xl">
-                                <h4 class="font-medium mb-2">📊 Processing Info</h4>
+                                <h4 class="font-medium mb-2">📊 处理信息</h4>
                                 <div class="text-sm grid grid-cols-2 gap-3">
-                                    <div>Files: <span class="font-bold">${this.files.length}</span></div>
-                                    <div>Est. Time: <span class="font-bold">${Math.ceil(this.files.length * 2.5)}s</span></div>
-                                    <div>Operations: <span class="font-bold">All 8</span></div>
-                                    <div>Output: <span class="font-bold">Various</span></div>
+                                    <div>文件数量: <span class="font-bold">${this.files.length}</span></div>
+                                    <div>预计时间: <span class="font-bold">${Math.ceil(this.files.length * 2.5)}秒</span></div>
+                                    <div>处理步骤: <span class="font-bold">所有已选</span></div>
+                                    <div>输出格式: <span class="font-bold">多种</span></div>
                                 </div>
                             </div>
                             <div class="p-4 bg-gradient-to-r from-macaron-lemon to-white rounded-xl">
-                                <h4 class="font-medium mb-2">💡 Note</h4>
+                                <h4 class="font-medium mb-2">💡 温馨提示</h4>
                                 <div class="text-sm text-morandi-shadow">
-                                    Batch processing will apply all configured steps sequentially. Time varies by file size and quantity.
+                                    批量处理将按顺序应用所有已配置的处理步骤。处理时间取决于文件大小和数量，请耐心等待。
                                 </div>
                             </div>
                         </div>
                         <div class="flex space-x-4 mt-6">
                             <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
                                     class="flex-1 btn-secondary py-3 rounded-xl font-medium">
-                                Cancel
+                                取消
                             </button>
                             <button onclick="app.batchProcessAll(); this.parentElement.parentElement.parentElement.parentElement.remove();" 
                                     class="flex-1 btn-primary py-3 rounded-xl font-medium">
-                                <span class="relative z-10">Start Processing</span>
+                                <span class="relative z-10">开始处理</span>
                             </button>
                         </div>
                     </div>
@@ -2124,8 +2901,8 @@ class ArtisticImageProcessor {
                     </svg>
                 </div>
                 <div>
-                    <div class="font-medium text-morandi-deep">Settings Reset</div>
-                    <div class="text-xs text-morandi-shadow">All parameters restored to default.</div>
+                    <div class="font-medium text-morandi-deep">设置已重置</div>
+                    <div class="text-xs text-morandi-shadow">所有参数已恢复默认值</div>
                 </div>
             </div>
         `;
