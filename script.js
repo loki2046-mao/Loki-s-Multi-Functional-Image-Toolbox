@@ -27,10 +27,9 @@ class ArtisticImageProcessor {
             this.setupRangeInputs();
             this.setupArtisticAnimations();
             this.setupDragAndDropReorder(); // Initialize drag-and-drop for batch operation reordering
-            console.log('🎨 Loki\'s Digital Atelier 初始化成功！');
+            console.log('🎨 Loki\'s Digital Atelier 初始化成功！', this); // Add debug log for 'this'
         } catch (error) {
             console.error('Loki\'s Digital Atelier 初始化失败:', error);
-            // 确保这里能给用户一个可见的提示
             const errorDiv = document.createElement('div');
             errorDiv.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
             errorDiv.textContent = '应用初始化失败，请检查浏览器控制台（F12）了解详情。';
@@ -70,14 +69,14 @@ class ArtisticImageProcessor {
         ['convert', 'compress', 'resize', 'watermark', 'filter', 'background', 'splice', 'analyze'].forEach(mode => {
             const tabElement = getElement(mode + 'Tab');
             if (tabElement) {
-                tabElement.addEventListener('click', () => this.switchTab(mode));
+                tabElement.addEventListener('click', this.switchTab.bind(this, mode)); // Explicitly bind 'this'
             }
         });
 
         // File selection
         const fileInput = getElement('fileInput');
         if (fileInput) {
-            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+            fileInput.addEventListener('change', this.handleFileSelect.bind(this)); // Explicitly bind 'this'
         }
         
         const uploadButton = document.querySelector('#uploadArea button'); 
@@ -91,7 +90,7 @@ class ArtisticImageProcessor {
         // Clear files
         const clearFilesBtn = getElement('clearFiles');
         if (clearFilesBtn) {
-            clearFilesBtn.addEventListener('click', () => this.clearFiles());
+            clearFilesBtn.addEventListener('click', this.clearFiles.bind(this)); // Explicitly bind 'this'
         }
 
         // Individual process buttons
@@ -109,35 +108,35 @@ class ArtisticImageProcessor {
         processButtons.forEach(({ id, mode }) => {
             const button = getElement(id);
             if (button) {
-                button.addEventListener('click', () => this.startProcessing(mode));
+                button.addEventListener('click', this.startProcessing.bind(this, mode)); // Explicitly bind 'this'
             }
         });
 
         // Batch operations
         const batchAllBtn = getElement('batchAll');
         if (batchAllBtn) {
-            batchAllBtn.addEventListener('click', () => this.openBatchSelectModal());
+            batchAllBtn.addEventListener('click', this.openBatchSelectModal.bind(this)); // Explicitly bind 'this'
         }
         
         const previewBatchBtn = getElement('previewBatch');
         if (previewBatchBtn) {
-            previewBatchBtn.addEventListener('click', () => this.previewBatch());
+            previewBatchBtn.addEventListener('click', this.previewBatch.bind(this)); // Explicitly bind 'this'
         }
         
         const resetAllBtn = getElement('resetAll');
         if (resetAllBtn) {
-            resetAllBtn.addEventListener('click', () => this.resetAllSettings());
+            resetAllBtn.addEventListener('click', this.resetAllSettings.bind(this)); // Explicitly bind 'this'
         }
 
         // Result actions
         const downloadAllBtn = getElement('downloadAll');
         if (downloadAllBtn) {
-            downloadAllBtn.addEventListener('click', () => this.downloadAll());
+            downloadAllBtn.addEventListener('click', this.downloadAll.bind(this)); // Explicitly bind 'this'
         }
         
         const clearResultsBtn = getElement('clearResults');
         if (clearResultsBtn) {
-            clearResultsBtn.addEventListener('click', () => this.clearResults());
+            clearResultsBtn.addEventListener('click', this.clearResults.bind(this)); // Explicitly bind 'this'
         }
 
         // Filter presets
@@ -148,51 +147,51 @@ class ArtisticImageProcessor {
         // Mode-specific input updates
         const resizeModeSelect = getElement('resizeMode');
         if (resizeModeSelect) {
-            resizeModeSelect.addEventListener('change', () => this.updateResizeInputs());
+            resizeModeSelect.addEventListener('change', this.updateResizeInputs.bind(this)); // Explicitly bind 'this'
         }
         
         const watermarkTypeSelect = getElement('watermarkType');
         if (watermarkTypeSelect) {
-            watermarkTypeSelect.addEventListener('change', () => this.updateWatermarkInputs());
+            watermarkTypeSelect.addEventListener('change', this.updateWatermarkInputs.bind(this)); // Explicitly bind 'this'
         }
         
         // New functionality event listeners (using querySelectorAll for robustness)
         document.querySelectorAll('input[name="resizeType"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateResizeTypeInputs());
+            radio.addEventListener('change', this.updateResizeTypeInputs.bind(this)); // Explicitly bind 'this'
         });
         document.querySelectorAll('input[name="cropMode"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateCropModeInputs());
+            radio.addEventListener('change', this.updateCropModeInputs.bind(this)); // Explicitly bind 'this'
         });
         document.querySelectorAll('input[name="watermarkAction"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateWatermarkActionInputs());
+            radio.addEventListener('change', this.updateWatermarkActionInputs.bind(this)); // Explicitly bind 'this'
         });
         document.querySelectorAll('input[name="removeMethod"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateRemoveMethodInputs());
+            radio.addEventListener('change', this.updateRemoveMethodInputs.bind(this)); // Explicitly bind 'this'
         });
         const backgroundTypeSelect = getElement('backgroundType');
         if (backgroundTypeSelect) {
-            backgroundTypeSelect.addEventListener('change', () => this.updateBackgroundInputs());
+            backgroundTypeSelect.addEventListener('change', this.updateBackgroundInputs.bind(this)); // Explicitly bind 'this'
         }
         
         const spliceModeSelect = getElement('spliceMode');
         if (spliceModeSelect) {
-            spliceModeSelect.addEventListener('change', () => this.updateSpliceInputs());
+            spliceModeSelect.addEventListener('change', this.updateSpliceInputs.bind(this)); // Explicitly bind 'this'
         }
         
         // Watermark brush/mask events
         const clearMaskBtn = getElement('clearMask');
         if (clearMaskBtn) {
-            clearMaskBtn.addEventListener('click', () => this.clearWatermarkMask());
+            clearMaskBtn.addEventListener('click', this.clearWatermarkMask.bind(this)); // Explicitly bind 'this'
         }
         
         const previewRemovalBtn = getElement('previewRemoval');
         if (previewRemovalBtn) {
-            previewRemovalBtn.addEventListener('click', () => this.previewWatermarkRemoval());
+            previewRemovalBtn.addEventListener('click', this.previewWatermarkRemoval.bind(this)); // Explicitly bind 'this'
         }
         
         const undoMaskBtn = getElement('undoMask');
         if (undoMaskBtn) {
-            undoMaskBtn.addEventListener('click', () => this.undoWatermarkMask());
+            undoMaskBtn.addEventListener('click', this.undoWatermarkMask.bind(this)); // Explicitly bind 'this'
         }
         
         // Color preset buttons
@@ -206,22 +205,22 @@ class ArtisticImageProcessor {
         // Crop events
         const aspectRatioSelect = getElement('aspectRatioConstraint');
         if (aspectRatioSelect) {
-            aspectRatioSelect.addEventListener('change', () => this.updateAspectRatioInputs());
+            aspectRatioSelect.addEventListener('change', this.updateAspectRatioInputs.bind(this)); // Explicitly bind 'this'
         }
         
         const resetCropBtn = getElement('resetCropSelection');
         if (resetCropBtn) {
-            resetCropBtn.addEventListener('click', () => this.resetCropSelection());
+            resetCropBtn.addEventListener('click', this.resetCropSelection.bind(this)); // Explicitly bind 'this'
         }
         
         const previewCropBtn = getElement('previewCrop');
         if (previewCropBtn) {
-            previewCropBtn.addEventListener('click', () => this.previewCropSelection());
+            previewCropBtn.addEventListener('click', this.previewCropSelection.bind(this)); // Explicitly bind 'this'
         }
         
         const applyCropBtn = getElement('applyCropSelection');
         if (applyCropBtn) {
-            applyCropBtn.addEventListener('click', () => this.applyCropSelection());
+            applyCropBtn.addEventListener('click', this.applyCropSelection.bind(this)); // Explicitly bind 'this'
         }
     }
 
@@ -325,12 +324,15 @@ class ArtisticImageProcessor {
     }
 
     handleFileSelect(e) {
+        console.log("File select event triggered."); // Debugging
         const files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
+        console.log("Selected files:", files); // Debugging
         this.addFiles(files);
     }
 
     addFiles(files) {
         this.files.push(...files);
+        console.log("Current files array:", this.files); // Debugging
         this.updateUI();
         this.renderFileList();
     }
@@ -347,7 +349,7 @@ class ArtisticImageProcessor {
         const fileCount = document.getElementById('fileCount');
 
         if (!fileList || !fileItems || !fileCount) {
-            console.warn("File list UI elements not found.");
+            console.warn("File list UI elements not found for rendering.");
             return;
         }
 
@@ -1596,7 +1598,7 @@ class ArtisticImageProcessor {
         if (this.isProcessing || this.files.length === 0) return;
 
         this.isProcessing = true;
-        this.showProgress();
+        this.showProgress(); // Debugging: Ensure this is correctly called
         
         const results = [];
         const totalFiles = this.files.length;
@@ -1666,7 +1668,7 @@ class ArtisticImageProcessor {
         }
 
         this.isProcessing = true;
-        this.showProgress();
+        this.showProgress(); 
         
         const finalResults = []; 
         const totalFiles = this.files.length;
@@ -1820,11 +1822,10 @@ class ArtisticImageProcessor {
         
         return new Promise(async (resolve) => {
             try {
-                // Ensure image loading is awaited and handles errors internally
                 const loadedImage = await this.loadImage(file); 
                 img.src = loadedImage.src; 
                 
-                // Using an arrow function for img.onload to correctly bind 'this'
+                // Use arrow function for img.onload to correctly bind 'this'
                 img.onload = async () => {
                     canvas.width = img.naturalWidth; 
                     canvas.height = img.naturalHeight;
@@ -1848,7 +1849,8 @@ class ArtisticImageProcessor {
                             await this.applyFormatConversion(canvas, ctx, img);
                             break;
                         case 'compress':
-                            // Important: Ensure applyCompression is called with `this` context
+                            // Ensure applyCompression is called with `this` context
+                            // No need to bind explicitly if it's called as this.applyCompression()
                             compressResult = await this.applyCompression(canvas, ctx, img, file);
                             
                             const selectedCompressFormat = document.getElementById('compressOutputFormat')?.value;
@@ -1917,7 +1919,6 @@ class ArtisticImageProcessor {
                     });
                 };
 
-                // This onerror is for when img.src fails to load the image data
                 img.onerror = (e) => {
                     console.error(`Image loading failed within processFile for mode '${mode}':`, e, "Input file:", file);
                     const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
@@ -1935,7 +1936,7 @@ class ArtisticImageProcessor {
                 };
 
             } catch (error) {
-                // This catch is for errors *before* img.onload or in loadImage itself
+                // Catch errors before img.onload or in loadImage itself
                 console.error(`Unhandled error during processFile for mode '${mode}':`, error, "Input file:", file);
                 const originalNameForError = file.name || (file.originalName ? file.originalName : 'error_image');
                 const originalFormatForError = file.type ? file.type.split('/')[1] : (file.format || 'unknown');
