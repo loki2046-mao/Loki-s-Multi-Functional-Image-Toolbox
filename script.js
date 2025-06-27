@@ -1,2931 +1,2175 @@
-class ArtisticImageProcessor {
-    constructor() {
-        this.files = [];
-        this.results = [];
-        this.currentMode = 'convert';
-        this.isProcessing = false;
-        this.watermarkCanvas = null;
-        this.watermarkMask = [];
-        this.watermarkMaskHistory = [];
-        this.isDrawing = false;
-        this.currentImage = null;
-        
-        // 裁剪相关属性
-        this.cropCanvas = null;
-        this.cropSelection = null;
-        this.isDragging = false;
-        this.dragType = null; // 'move', 'resize-tl', 'resize-tr', 'resize-bl', 'resize-br'
-        this.dragStart = { x: 0, y: 0 };
-        this.currentCropImage = null;
-        this.manualCropParams = null; // 用于存储手动裁剪的参数
-        
-        // 不需要在这里调用 init()，因为它会在 DOMContentLoaded 中被调用
-        // this.init(); 
-    }
+document.addEventListener('DOMContentLoaded', () => {
 
-    init() {
-        this.setupEventListeners();
-        this.setupDragAndDrop();
-        this.setupRangeInputs();
-        this.setupArtisticAnimations();
-    }
+    const App = {
+        
+        files: [],
+        resultURLs: [],
+        resultData: {},
+        cropper: null,
+        activeFilter: null,
+        isProcessing: false,
+        histogramChart: null,
+        inpaintingState: {
+            painting: false,
+            brushSize: 20,
+            lastX: 0,
+            lastY: 0,
+        },
+        
+        elements: {
+            uploadArea: document.getElementById('uploadArea'),
+            fileInput: document.getElementById('fileInput'),
+            selectFilesBtn: document.getElementById('selectFilesBtn'),
+            fileList: document.getElementById('fileList'),
+            fileItems: document.getElementById('fileItems'),
+            fileCount: document.getElementById('fileCount'),
+            clearFiles: document.getElementById('clearFiles'),
+            tabsContainer: document.getElementById('tabsContainer'),
+            panelsContainer: document.getElementById('panelsContainer'),
+            progressSection: document.getElementById('progressSection'),
+            progressBar: document.getElementById('progressBar'),
+            totalProgress: document.getElementById('totalProgress'),
+            currentTask: document.getElementById('currentTask'),
+            resultsSection: document.getElementById('resultsSection'),
+            resultsGrid: document.getElementById('resultsGrid'),
+            downloadAll: document.getElementById('downloadAll'),
+            clearResults: document.getElementById('clearResults'),
+            startConvert: document.getElementById('startConvert'),
+            startCompress: document.getElementById('startCompress'),
+            startResize: document.getElementById('startResize'),
+            startWatermark: document.getElementById('startWatermark'),
+            startFilter: document.getElementById('startFilter'),
+            qualityValue: document.getElementById('qualityValue'),
+            jpegQuality: document.getElementById('jpegQuality'),
+            customQualityValue: document.getElementById('customQualityValue'),
+            customQuality: document.getElementById('customQuality'),
+            compressLevel: document.getElementById('compressLevel'),
+            targetSize: document.getElementById('targetSize'),
+            resizeTypeRadios: document.querySelectorAll('input[name="resizeType"]'),
+            resizeOptions: document.getElementById('resizeOptions'),
+            cropOptions: document.getElementById('cropOptions'),
+            targetWidth: document.getElementById('targetWidth'),
+            targetHeight: document.getElementById('targetHeight'),
+            keepAspectRatio: document.getElementById('keepAspectRatio'),
+            resizeMode: document.getElementById('resizeMode'),
+            cropContainer: document.getElementById('cropContainer'),
+            cropImage: document.getElementById('cropImage'),
+            cropPlaceholder: document.getElementById('cropPlaceholder'),
+            confirmCropBtn: document.getElementById('confirmCropBtn'),
+            cropDimensionsDisplay: document.getElementById('cropDimensionsDisplay'),
+            cropWidthInput: document.getElementById('cropWidthInput'),
+            cropHeightInput: document.getElementById('cropHeightInput'),
+            cropScopeRadios: document.querySelectorAll('input[name="cropScope"]'),
+            watermarkActionRadios: document.querySelectorAll('input[name="watermarkAction"]'),
+            addWatermarkOptions: document.getElementById('addWatermarkOptions'),
+            removeWatermarkOptions: document.getElementById('removeWatermarkOptions'),
+            watermarkAddScopeRadios: document.querySelectorAll('input[name="watermarkAddScope"]'),
+            watermarkRemoveScopeRadios: document.querySelectorAll('input[name="watermarkRemoveScope"]'),
+            watermarkTypeRadios: document.querySelectorAll('input[name="watermarkType"]'),
+            textWatermarkFields: document.getElementById('textWatermarkFields'),
+            imageWatermarkFields: document.getElementById('imageWatermarkFields'),
+            watermarkImage: document.getElementById('watermarkImage'),
+            watermarkImageScale: document.getElementById('watermarkImageScale'),
+            watermarkImageScaleValue: document.getElementById('watermarkImageScaleValue'),
+            watermarkOpacity: document.getElementById('watermarkOpacity'),
+            opacityValue: document.getElementById('opacityValue'),
+            inpaintingContainer: document.getElementById('inpaintingContainer'),
+            inpaintingCanvas: document.getElementById('inpaintingCanvas'),
+            maskCanvas: document.getElementById('maskCanvas'),
+            inpaintingPlaceholder: document.getElementById('inpaintingPlaceholder'),
+            brushSize: document.getElementById('brushSize'),
+            brushSizeValue: document.getElementById('brushSizeValue'),
+            clearMaskBtn: document.getElementById('clearMaskBtn'),
+            applyRemovalBtn: document.getElementById('applyRemovalBtn'),
+            filterPresetBtns: document.querySelectorAll('.filter-preset'),
+            filterSliders: document.querySelectorAll('.filter-slider'),
+            applySingleFilterBtn: document.getElementById('applySingleFilterBtn'),
+            filterPreviewCanvas: document.getElementById('filterPreviewCanvas'),
+            filterPreviewContainer: document.getElementById('filterPreviewContainer'),
+            filterPreviewPlaceholder: document.getElementById('filterPreviewPlaceholder'),
+            brightness: document.getElementById('brightness'),
+            brightnessValue: document.getElementById('brightnessValue'),
+            contrast: document.getElementById('contrast'),
+            contrastValue: document.getElementById('contrastValue'),
+            saturation: document.getElementById('saturation'),
+            saturationValue: document.getElementById('saturationValue'),
+            blur: document.getElementById('blur'),
+            blurValue: document.getElementById('blurValue'),
+            startAddBackground: document.getElementById('startAddBackground'),
+            paddingWidth: document.getElementById('paddingWidth'),
+            backgroundTypeRadios: document.querySelectorAll('input[name="backgroundType"]'),
+            solidBgOptions: document.getElementById('solidBgOptions'),
+            gradientBgOptions: document.getElementById('gradientBgOptions'),
+            bgColor: document.getElementById('bgColor'),
+            gradientColor1: document.getElementById('gradientColor1'),
+            gradientColor2: document.getElementById('gradientColor2'),
+            gradientDirection: document.getElementById('gradientDirection'),
+            startSplice: document.getElementById('startSplice'),
+            spliceMode: document.getElementById('spliceMode'),
+            spliceSpacing: document.getElementById('spliceSpacing'),
+            spliceSpacingContainer: document.getElementById('spliceSpacingContainer'),
+            spliceFixedSizeContainer: document.getElementById('spliceFixedSizeContainer'),
+            spliceFixedWidth: document.getElementById('spliceFixedWidth'),
+            spliceFixedHeight: document.getElementById('spliceFixedHeight'),
+            analyzePanel: document.getElementById('analyzePanel'),
+            analysisPlaceholder: document.getElementById('analysisPlaceholder'),
+            analysisInfoSection: document.getElementById('analysisInfoSection'),
+            analysisFilename: document.getElementById('analysisFilename'),
+            analysisDimensions: document.getElementById('analysisDimensions'),
+            analysisSize: document.getElementById('analysisSize'),
+            analysisType: document.getElementById('analysisType'),
+            histogramCanvas: document.getElementById('histogramCanvas'),
+        },
 
-    setupArtisticAnimations() {
-        // 添加一些微妙的动画效果
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
+        init() {
+            this.bindEvents();
+            this.updateUI();
+            this.updateCropButtonText();
+            this.updateWatermarkButtonText();
+        },
+
+        bindEvents() {
+            this.elements.selectFilesBtn.addEventListener('click', () => this.elements.fileInput.click());
+            this.elements.fileInput.addEventListener('change', (e) => this.handleFileSelection(e.target.files));
+
+            const uploadArea = this.elements.uploadArea;
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, this.preventDefaults, false);
+            });
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.add('drag-over'), false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('drag-over'), false);
+            });
+            uploadArea.addEventListener('drop', (e) => this.handleDrop(e), false);
+
+            this.elements.clearFiles.addEventListener('click', () => this.clearFiles());
+            
+            this.elements.tabsContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    this.switchTab(e.target.dataset.tab);
                 }
             });
-        });
 
-        // 观察所有面板
-        document.querySelectorAll('.morandi-card').forEach(card => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(20px)';
-            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-            observer.observe(card);
-        });
-    }
-
-    setupEventListeners() {
-        // 标签切换
-        ['convert', 'compress', 'resize', 'watermark', 'filter', 'background', 'splice', 'analyze'].forEach(mode => {
-            const tabElement = document.getElementById(mode + 'Tab');
-            if (tabElement) {
-                tabElement.addEventListener('click', () => this.switchTab(mode));
-            }
-        });
-
-        // 文件选择
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-        }
-        
-        const uploadButton = document.querySelector('#uploadArea button');
-        if (uploadButton) {
-            uploadButton.addEventListener('click', () => {
-                const fileInput = document.getElementById('fileInput');
-                if (fileInput) fileInput.click();
-            });
-        }
-
-        // 清空文件
-        const clearFilesBtn = document.getElementById('clearFiles');
-        if (clearFilesBtn) {
-            clearFilesBtn.addEventListener('click', () => this.clearFiles());
-        }
-
-        // 处理按钮
-        const processButtons = [
-            { id: 'startConvert', mode: 'convert' },
-            { id: 'startCompress', mode: 'compress' },
-            { id: 'startResize', mode: 'resize' },
-            { id: 'startWatermark', mode: 'watermark' },
-            { id: 'startFilter', mode: 'filter' },
-            { id: 'startBackground', mode: 'background' },
-            { id: 'startSplice', mode: 'splice' },
-            { id: 'startAnalyze', mode: 'analyze' }
-        ];
-        
-        processButtons.forEach(({ id, mode }) => {
-            const button = document.getElementById(id);
-            if (button) {
-                button.addEventListener('click', () => this.startProcessing(mode));
-            }
-        });
-
-        // 批量操作
-        const batchAllBtn = document.getElementById('batchAll');
-        if (batchAllBtn) {
-            batchAllBtn.addEventListener('click', () => this.batchProcessAll());
-        }
-        
-        const previewBatchBtn = document.getElementById('previewBatch');
-        if (previewBatchBtn) {
-            previewBatchBtn.addEventListener('click', () => this.previewBatch());
-        }
-        
-        const resetAllBtn = document.getElementById('resetAll');
-        if (resetAllBtn) {
-            resetAllBtn.addEventListener('click', () => this.resetAllSettings());
-        }
-
-        // 结果操作
-        const downloadAllBtn = document.getElementById('downloadAll');
-        if (downloadAllBtn) {
-            downloadAllBtn.addEventListener('click', () => this.downloadAll());
-        }
-        
-        const clearResultsBtn = document.getElementById('clearResults');
-        if (clearResultsBtn) {
-            clearResultsBtn.addEventListener('click', () => this.clearResults());
-        }
-
-        // 滤镜预设
-        document.querySelectorAll('.filter-preset').forEach(btn => {
-            btn.addEventListener('click', (e) => this.applyFilterPreset(e.target.dataset.filter));
-        });
-
-        // 各种模式切换
-        const resizeModeSelect = document.getElementById('resizeMode');
-        if (resizeModeSelect) {
-            resizeModeSelect.addEventListener('change', () => this.updateResizeInputs());
-        }
-        
-        const watermarkTypeSelect = document.getElementById('watermarkType');
-        if (watermarkTypeSelect) {
-            watermarkTypeSelect.addEventListener('change', () => this.updateWatermarkInputs());
-        }
-        
-        // 新功能的事件监听
-        document.querySelectorAll('input[name="resizeType"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateResizeTypeInputs());
-        });
-        document.querySelectorAll('input[name="cropMode"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateCropModeInputs());
-        });
-        document.querySelectorAll('input[name="watermarkAction"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateWatermarkActionInputs());
-        });
-        document.querySelectorAll('input[name="removeMethod"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updateRemoveMethodInputs());
-        });
-        const backgroundTypeSelect = document.getElementById('backgroundType');
-        if (backgroundTypeSelect) {
-            backgroundTypeSelect.addEventListener('change', () => this.updateBackgroundInputs());
-        }
-        
-        const spliceModeSelect = document.getElementById('spliceMode');
-        if (spliceModeSelect) {
-            spliceModeSelect.addEventListener('change', () => this.updateSpliceInputs());
-        }
-        
-        // 水印涂抹相关事件
-        const clearMaskBtn = document.getElementById('clearMask');
-        if (clearMaskBtn) {
-            clearMaskBtn.addEventListener('click', () => this.clearWatermarkMask());
-        }
-        
-        const previewRemovalBtn = document.getElementById('previewRemoval');
-        if (previewRemovalBtn) {
-            previewRemovalBtn.addEventListener('click', () => this.previewWatermarkRemoval());
-        }
-        
-        const undoMaskBtn = document.getElementById('undoMask');
-        if (undoMaskBtn) {
-            undoMaskBtn.addEventListener('click', () => this.undoWatermarkMask());
-        }
-        
-        // 颜色预设按钮
-        document.querySelectorAll('.color-preset').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.getElementById('backgroundColor1').value = e.target.dataset.color;
-            });
-        });
-        
-        // 裁剪相关事件
-        const aspectRatioSelect = document.getElementById('aspectRatioConstraint');
-        if (aspectRatioSelect) {
-            aspectRatioSelect.addEventListener('change', () => this.updateAspectRatioInputs());
-        }
-        
-        const resetCropBtn = document.getElementById('resetCropSelection');
-        if (resetCropBtn) {
-            resetCropBtn.addEventListener('click', () => this.resetCropSelection());
-        }
-        
-        const previewCropBtn = document.getElementById('previewCrop');
-        if (previewCropBtn) {
-            previewCropBtn.addEventListener('click', () => this.previewCropSelection());
-        }
-        
-        const applyCropBtn = document.getElementById('applyCropSelection');
-        if (applyCropBtn) {
-            applyCropBtn.addEventListener('click', () => this.applyCropSelection());
-        }
-    }
-
-    setupDragAndDrop() {
-        const area = document.getElementById('uploadArea');
-        if (!area) return;
-        
-        area.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            area.classList.add('dragover');
-        });
-
-        area.addEventListener('dragleave', () => {
-            area.classList.remove('dragover');
-        });
-
-        area.addEventListener('drop', (e) => {
-            e.preventDefault();
-            area.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'));
-            this.addFiles(files);
-        });
-    }
-
-    setupRangeInputs() {
-        // 设置范围输入的实时更新
-        const rangeInputs = [
-            { input: 'jpegQuality', output: 'qualityValue' },
-            { input: 'customQuality', output: 'customQualityValue' },
-            { input: 'watermarkOpacity', output: 'opacityValue', multiply: 100 },
-            { input: 'brightness', output: 'brightnessValue' },
-            { input: 'contrast', output: 'contrastValue' },
-            { input: 'saturation', output: 'saturationValue' },
-            { input: 'blur', output: 'blurValue' },
-            { input: 'repairStrength', output: 'repairValue' },
-            { input: 'manualRepairStrength', output: 'manualRepairValue' },
-            { input: 'brushSize', output: 'brushSizeValue', suffix: 'px' },
-            { input: 'colorCount', output: 'colorCountValue', suffix: ' 种颜色' }
-        ];
-
-        rangeInputs.forEach(({ input, output, multiply = 1, suffix = '' }) => {
-            const inputEl = document.getElementById(input);
-            const outputEl = document.getElementById(output);
-            if (inputEl && outputEl) {
-                inputEl.addEventListener('input', () => {
-                    outputEl.textContent = Math.round(inputEl.value * multiply) + suffix;
-                });
-            }
-        });
-    }
-
-    switchTab(mode) {
-        this.currentMode = mode;
-        
-        // 更新标签样式
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(mode + 'Tab').classList.add('active');
-
-        // 更新面板显示
-        document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
-        document.getElementById(mode + 'Panel').classList.remove('hidden');
-    }
-
-    handleFileSelect(e) {
-        const files = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
-        this.addFiles(files);
-    }
-
-    addFiles(files) {
-        this.files.push(...files);
-        this.updateUI();
-        this.renderFileList();
-    }
-
-    clearFiles() {
-        this.files = [];
-        this.updateUI();
-        this.renderFileList();
-    }
-
-    renderFileList() {
-        const fileList = document.getElementById('fileList');
-        const fileItems = document.getElementById('fileItems');
-        const fileCount = document.getElementById('fileCount');
-
-        if (this.files.length === 0) {
-            fileList.classList.add('hidden');
-            return;
-        }
-
-        fileList.classList.remove('hidden');
-        fileCount.textContent = this.files.length;
-
-        fileItems.innerHTML = '';
-        this.files.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'file-item p-4 flex items-center justify-between relative';
-            
-            const sizeText = this.formatFileSize(file.size);
-            item.innerHTML = `
-                <div class="flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-gradient-to-br from-macaron-lavender to-macaron-mint rounded-xl flex items-center justify-center shadow-sm">
-                        <svg class="w-5 h-5 text-morandi-deep" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3  6z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <div class="font-medium text-sm text-morandi-deep">${file.name}</div>
-                        <div class="text-xs text-morandi-shadow">${sizeText}</div>
-                    </div>
-                </div>
-                <button onclick="app.removeFile(${index})" class="text-morandi-clay hover:text-red-500 text-sm font-medium transition-colors px-3 py-1 rounded-lg">
-                    删除
-                </button>
-            `;
-            fileItems.appendChild(item);
-        });
-    }
-
-    removeFile(index) {
-        this.files.splice(index, 1);
-        this.updateUI();
-        this.renderFileList();
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    updateUI() {
-        const hasFiles = this.files.length > 0;
-        const buttons = [
-            'startConvert', 'startCompress', 'startResize', 
-            'startWatermark', 'startFilter', 'startBackground',
-            'startSplice', 'startAnalyze', 'batchAll', 'previewBatch'
-        ];
-        
-        buttons.forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.disabled = !hasFiles || this.isProcessing;
-            }
-        });
-    }
-
-    updateResizeInputs() {
-        const mode = document.getElementById('resizeMode').value;
-        const widthInput = document.getElementById('targetWidth');
-        const heightInput = document.getElementById('targetHeight');
-        
-        switch(mode) {
-            case 'percentage':
-                widthInput.placeholder = '50 (表示50%)';
-                heightInput.disabled = true;
-                break;
-            case 'width':
-                widthInput.placeholder = '800';
-                heightInput.disabled = true;
-                break;
-            case 'height':
-                widthInput.disabled = true;
-                heightInput.placeholder = '600';
-                break;
-            case 'fixed':
-                widthInput.disabled = false;
-                heightInput.disabled = false;
-                widthInput.placeholder = '800';
-                heightInput.placeholder = '600';
-                break;
-        }
-    }
-
-    updateWatermarkInputs() {
-        const type = document.getElementById('watermarkType').value;
-        const textOptions = document.getElementById('textWatermarkOptions');
-        
-        textOptions.style.display = type === 'text' ? 'block' : 'none';
-    }
-
-    updateResizeTypeInputs() {
-        const type = document.querySelector('input[name="resizeType"]:checked').value;
-        const resizeOptions = document.getElementById('resizeOptions');
-        const cropOptions = document.getElementById('cropOptions');
-        
-        if (type === 'resize') {
-            resizeOptions.style.display = 'grid';
-            cropOptions.style.display = 'none';
-        } else {
-            resizeOptions.style.display = 'none';
-            cropOptions.style.display = 'block';
-            this.setupCropCanvas();
-        }
-    }
-
-    updateCropModeInputs() {
-        const mode = document.querySelector('input[name="cropMode"]:checked').value;
-        const manualOptions = document.getElementById('manualCropOptions');
-        const presetOptions = document.getElementById('presetCropOptions');
-        
-        if (mode === 'manual') {
-            manualOptions.style.display = 'block';
-            presetOptions.style.display = 'none';
-            this.setupCropCanvas();
-        } else {
-            manualOptions.style.display = 'none';
-            presetOptions.style.display = 'block';
-        }
-    }
-
-    updateAspectRatioInputs() {
-        const constraint = document.getElementById('aspectRatioConstraint').value;
-        const customInputs = document.getElementById('customRatioInputs');
-        
-        if (constraint === 'custom') {
-            customInputs.style.display = 'block';
-        } else {
-            customInputs.style.display = 'none';
-        }
-        
-        // 如果有活动的裁剪选择，更新约束
-        if (this.cropSelection) {
-            this.updateCropConstraints();
-        }
-    }
-
-    updateWatermarkActionInputs() {
-        const action = document.querySelector('input[name="watermarkAction"]:checked').value;
-        const addOptions = document.getElementById('addWatermarkOptions');
-        const removeOptions = document.getElementById('removeWatermarkOptions');
-        
-        if (action === 'add') {
-            addOptions.style.display = 'block';
-            removeOptions.style.display = 'none';
-        } else {
-            addOptions.style.display = 'none';
-            removeOptions.style.display = 'block';
-            this.setupWatermarkCanvas();
-        }
-    }
-
-    updateRemoveMethodInputs() {
-        const method = document.querySelector('input[name="removeMethod"]:checked').value;
-        const autoOptions = document.getElementById('autoRemoveOptions');
-        const manualOptions = document.getElementById('manualRemoveOptions');
-        
-        if (method === 'auto') {
-            autoOptions.style.display = 'block';
-            manualOptions.style.display = 'none';
-        } else {
-            autoOptions.style.display = 'none';
-            manualOptions.style.display = 'block';
-            this.setupWatermarkCanvas();
-        }
-    }
-
-    setupWatermarkCanvas() {
-        // 延迟执行以确保DOM已更新
-        setTimeout(() => {
-            if (this.files.length > 0) {
-                this.loadImageForWatermarkEditing(this.files[0]);
-            }
-        }, 100);
-    }
-
-    setupCropCanvas() {
-        // 延迟执行以确保DOM已更新
-        setTimeout(() => {
-            if (this.files.length > 0) {
-                this.loadImageForCropEditing(this.files[0]);
-            }
-        }, 100);
-    }
-
-    async loadImageForCropEditing(file) {
-        const canvas = document.getElementById('cropPreview');
-        const placeholder = document.getElementById('cropPlaceholder');
-        
-        if (!canvas || !placeholder) return;
-        
-        const ctx = canvas.getContext('2d');
-        
-        const img = new Image();
-        img.onload = () => {
-            // 计算合适的显示尺寸
-            const maxWidth = 600;
-            const maxHeight = 400;
-            let { width, height } = this.calculateDisplaySize(img.width, img.height, maxWidth, maxHeight);
-            
-            canvas.width = width;
-            canvas.height = height;
-            canvas.style.display = 'block';
-            placeholder.style.display = 'none';
-            
-            // 绘制图像
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // 保存裁剪图像信息
-            this.currentCropImage = {
-                originalImg: img,
-                canvas: canvas,
-                ctx: ctx,
-                scaleX: width / img.width,
-                scaleY: height / img.height,
-                displayWidth: width,
-                displayHeight: height
-            };
-            
-            // 初始化裁剪选择区域（默认为图片中心1/2大小）
-            const defaultWidth = Math.min(200, width * 0.5);
-            const defaultHeight = Math.min(150, height * 0.5);
-            this.cropSelection = {
-                x: (width - defaultWidth) / 2,
-                y: (height - defaultHeight) / 2,
-                width: defaultWidth,
-                height: defaultHeight
-            };
-            
-            // 设置画布事件
-            this.setupCropCanvasEvents();
-            
-            // 绘制裁剪选择框
-            this.drawCropSelection();
-            
-            // 更新显示信息
-            this.updateCropDisplay();
-            
-            // 启用按钮
-            this.updateCropButtons();
-        };
-        
-        img.src = URL.createObjectURL(file);
-    }
-
-    setupCropCanvasEvents() {
-        const canvas = this.currentCropImage.canvas;
-        
-        // 鼠标事件
-        canvas.addEventListener('mousedown', (e) => this.startCropDrag(e));
-        canvas.addEventListener('mousemove', (e) => this.handleCropDrag(e));
-        canvas.addEventListener('mouseup', () => this.stopCropDrag());
-        canvas.addEventListener('mouseout', () => this.stopCropDrag());
-        
-        // 触摸事件支持
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        });
-        
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        });
-        
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            const mouseEvent = new MouseEvent('mouseup', {});
-            canvas.dispatchEvent(mouseEvent);
-        });
-    }
-
-    startCropDrag(e) {
-        if (!this.cropSelection) return;
-        
-        const rect = this.currentCropImage.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (this.currentCropImage.canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (this.currentCropImage.canvas.height / rect.height);
-        
-        this.dragStart = { x, y };
-        this.dragType = this.getCropDragType(x, y);
-        this.isDragging = true;
-        
-        // 更新鼠标样式
-        this.updateCursorStyle(this.dragType);
-    }
-
-    handleCropDrag(e) {
-        if (!this.cropSelection) return;
-        
-        const rect = this.currentCropImage.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (this.currentCropImage.canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (this.currentCropImage.canvas.height / rect.height);
-        
-        if (!this.isDragging) {
-            // 更新鼠标样式
-            const dragType = this.getCropDragType(x, y);
-            this.updateCursorStyle(dragType);
-            return;
-        }
-        
-        const deltaX = x - this.dragStart.x;
-        const deltaY = y - this.dragStart.y;
-        
-        const newSelection = { ...this.cropSelection };
-        
-        switch (this.dragType) {
-            case 'move':
-                newSelection.x = Math.max(0, Math.min(this.currentCropImage.displayWidth - newSelection.width, this.cropSelection.x + deltaX));
-                newSelection.y = Math.max(0, Math.min(this.currentCropImage.displayHeight - newSelection.height, this.cropSelection.y + deltaY));
-                break;
-            case 'resize-tl':
-                this.resizeSelection(newSelection, deltaX, deltaY, 'tl');
-                break;
-            case 'resize-tr':
-                this.resizeSelection(newSelection, deltaX, deltaY, 'tr');
-                break;
-            case 'resize-bl':
-                this.resizeSelection(newSelection, deltaX, deltaY, 'bl');
-                break;
-            case 'resize-br':
-                this.resizeSelection(newSelection, deltaX, deltaY, 'br');
-                break;
-        }
-        
-        // 应用约束
-        this.applyCropConstraints(newSelection);
-        
-        this.cropSelection = newSelection;
-        this.dragStart = { x, y };
-        
-        this.drawCropSelection();
-        this.updateCropDisplay();
-    }
-
-    stopCropDrag() {
-        this.isDragging = false;
-        this.dragType = null;
-        this.updateCursorStyle('default');
-    }
-
-    getCropDragType(x, y) {
-        if (!this.cropSelection) return 'default';
-        
-        const sel = this.cropSelection;
-        const handleSize = 8;
-        
-        // 检查四个角的拖拽手柄
-        if (this.isInHandle(x, y, sel.x, sel.y, handleSize)) return 'resize-tl';
-        if (this.isInHandle(x, y, sel.x + sel.width, sel.y, handleSize)) return 'resize-tr';
-        if (this.isInHandle(x, y, sel.x, sel.y + sel.height, handleSize)) return 'resize-bl';
-        if (this.isInHandle(x, y, sel.x + sel.width, sel.y + sel.height, handleSize)) return 'resize-br';
-        
-        // 检查是否在选择区域内（移动）
-        if (x >= sel.x && x <= sel.x + sel.width && y >= sel.y && y <= sel.y + sel.height) {
-            return 'move';
-        }
-        
-        return 'default';
-    }
-
-    isInHandle(x, y, handleX, handleY, size) {
-        return x >= handleX - size/2 && x <= handleX + size/2 && 
-               y >= handleY - size/2 && y <= handleY + size/2;
-    }
-
-    updateCursorStyle(dragType) {
-        const canvas = this.currentCropImage.canvas;
-        const cursors = {
-            'default': 'default',
-            'move': 'move',
-            'resize-tl': 'nw-resize',
-            'resize-tr': 'ne-resize',
-            'resize-bl': 'sw-resize',
-            'resize-br': 'se-resize'
-        };
-        canvas.style.cursor = cursors[dragType] || 'default';
-    }
-
-    resizeSelection(selection, deltaX, deltaY, corner) {
-        const minWidth = parseInt(document.getElementById('minCropWidth').value) || 20;
-        const minHeight = parseInt(document.getElementById('minCropHeight').value) || 20;
-        
-        switch (corner) {
-            case 'tl':
-                const newX = Math.max(0, selection.x + deltaX);
-                const newY = Math.max(0, selection.y + deltaY);
-                const newWidth = selection.width - (newX - selection.x);
-                const newHeight = selection.height - (newY - selection.y);
-                
-                if (newWidth >= minWidth && newHeight >= minHeight) {
-                    selection.x = newX;
-                    selection.y = newY;
-                    selection.width = newWidth;
-                    selection.height = newHeight;
+            this.elements.startConvert.addEventListener('click', () => this.processFiles('convert'));
+            this.elements.startCompress.addEventListener('click', () => this.processFiles('compress'));
+            this.elements.startResize.addEventListener('click', () => this.processFiles('resize'));
+            this.elements.startWatermark.addEventListener('click', () => {
+                const watermarkType = document.querySelector('input[name="watermarkType"]:checked').value;
+                if (watermarkType === 'image' && this.elements.watermarkImage.files.length === 0) {
+                    alert('请选择一个水印图片文件。');
+                    return;
                 }
-                break;
-            case 'tr':
-                const newWidthTR = Math.max(minWidth, selection.width + deltaX);
-                const newYTR = Math.max(0, selection.y + deltaY);
-                const newHeightTR = selection.height - (newYTR - selection.y);
-                
-                if (selection.x + newWidthTR <= this.currentCropImage.displayWidth && newHeightTR >= minHeight) {
-                    selection.width = newWidthTR;
-                    selection.y = newYTR;
-                    selection.height = newHeightTR;
-                }
-                break;
-            case 'bl':
-                const newXBL = Math.max(0, selection.x + deltaX);
-                const newWidthBL = selection.width - (newXBL - selection.x);
-                const newHeightBL = Math.max(minHeight, selection.height + deltaY);
-                
-                if (newWidthBL >= minWidth && selection.y + newHeightBL <= this.currentCropImage.displayHeight) {
-                    selection.x = newXBL;
-                    selection.width = newWidthBL;
-                    selection.height = newHeightBL;
-                }
-                break;
-            case 'br':
-                const newWidthBR = Math.max(minWidth, selection.width + deltaX);
-                const newHeightBR = Math.max(minHeight, selection.height + deltaY);
-                
-                if (selection.x + newWidthBR <= this.currentCropImage.displayWidth && 
-                    selection.y + newHeightBR <= this.currentCropImage.displayHeight) {
-                    selection.width = newWidthBR;
-                    selection.height = newHeightBR;
-                }
-                break;
-        }
-    }
-
-    applyCropConstraints(selection) {
-        const constraint = document.getElementById('aspectRatioConstraint').value;
-        
-        if (constraint === 'free') return;
-        
-        let ratio = 1;
-        
-        switch (constraint) {
-            case '1:1': ratio = 1; break;
-            case '4:3': ratio = 4/3; break;
-            case '3:2': ratio = 3/2; break;
-            case '16:9': ratio = 16/9; break;
-            case '9:16': ratio = 9/16; break;
-            case 'custom':
-                const customW = parseFloat(document.getElementById('customRatioW').value) || 1;
-                const customH = parseFloat(document.getElementById('customRatioH').value) || 1;
-                ratio = customW / customH;
-                break;
-        }
-        
-        // 保持宽高比，以较小的维度为准
-        if (selection.width / selection.height > ratio) {
-            selection.width = selection.height * ratio;
-        } else {
-            selection.height = selection.width / ratio;
-        }
-        
-        // 确保不超出边界
-        if (selection.x + selection.width > this.currentCropImage.displayWidth) {
-            selection.width = this.currentCropImage.displayWidth - selection.x;
-            selection.height = selection.width / ratio;
-        }
-        if (selection.y + selection.height > this.currentCropImage.displayHeight) {
-            selection.height = this.currentCropImage.displayHeight - selection.y;
-            selection.width = selection.height * ratio;
-        }
-    }
-
-    updateCropConstraints() {
-        if (!this.cropSelection) return;
-        
-        this.applyCropConstraints(this.cropSelection);
-        this.drawCropSelection();
-        this.updateCropDisplay();
-    }
-
-    drawCropSelection() {
-        if (!this.currentCropImage || !this.cropSelection) return;
-        
-        const ctx = this.currentCropImage.ctx;
-        const img = this.currentCropImage.originalImg;
-        
-        // 清除并重新绘制图像
-        ctx.clearRect(0, 0, this.currentCropImage.displayWidth, this.currentCropImage.displayHeight);
-        ctx.drawImage(img, 0, 0, this.currentCropImage.displayWidth, this.currentCropImage.displayHeight);
-        
-        const sel = this.cropSelection;
-        
-        // 绘制遮罩（选择区域外的半透明覆盖）
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, this.currentCropImage.displayWidth, sel.y); // 上方
-        ctx.fillRect(0, sel.y, sel.x, sel.height); // 左侧
-        ctx.fillRect(sel.x + sel.width, sel.y, this.currentCropImage.displayWidth - sel.x - sel.width, sel.height); // 右侧
-        ctx.fillRect(0, sel.y + sel.height, this.currentCropImage.displayWidth, this.currentCropImage.displayHeight - sel.y - sel.height); // 下方
-        
-        // 绘制选择框边框
-        ctx.strokeStyle = '#4A7C7E';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sel.x, sel.y, sel.width, sel.height);
-        
-        // 绘制拖拽手柄
-        const handleSize = 8;
-        ctx.fillStyle = '#4A7C7E';
-        
-        // 四个角的手柄
-        this.drawHandle(ctx, sel.x, sel.y, handleSize);
-        this.drawHandle(ctx, sel.x + sel.width, sel.y, handleSize);
-        this.drawHandle(ctx, sel.x, sel.y + sel.height, handleSize);
-        this.drawHandle(ctx, sel.x + sel.width, sel.y + sel.height, handleSize);
-        
-        // 绘制网格线（九宫格辅助线）
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 1;
-        
-        // 垂直线
-        ctx.beginPath();
-        ctx.moveTo(sel.x + sel.width / 3, sel.y);
-        ctx.lineTo(sel.x + sel.width / 3, sel.y + sel.height);
-        ctx.moveTo(sel.x + sel.width * 2 / 3, sel.y);
-        ctx.lineTo(sel.x + sel.width * 2 / 3, sel.y + sel.height);
-        ctx.stroke();
-        
-        // 水平线
-        ctx.beginPath();
-        ctx.moveTo(sel.x, sel.y + sel.height / 3);
-        ctx.lineTo(sel.x + sel.width, sel.y + sel.height / 3);
-        ctx.moveTo(sel.x, sel.y + sel.height * 2 / 3);
-        ctx.lineTo(sel.x + sel.width, sel.y + sel.height * 2 / 3);
-        ctx.stroke();
-    }
-
-    drawHandle(ctx, x, y, size) {
-        ctx.fillRect(x - size/2, y - size/2, size, size);
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - size/2, y - size/2, size, size);
-    }
-
-    updateCropDisplay() {
-        if (!this.cropSelection || !this.currentCropImage) return;
-        
-        // 计算实际图像坐标
-        const realX = Math.round(this.cropSelection.x / this.currentCropImage.scaleX);
-        const realY = Math.round(this.cropSelection.y / this.currentCropImage.scaleY);
-        const realWidth = Math.round(this.cropSelection.width / this.currentCropImage.scaleX);
-        const realHeight = Math.round(this.cropSelection.height / this.currentCropImage.scaleY);
-        
-        document.getElementById('displayCropX').textContent = realX;
-        document.getElementById('displayCropY').textContent = realY;
-        document.getElementById('displayCropWidth').textContent = realWidth;
-        document.getElementById('displayCropHeight').textContent = realHeight;
-    }
-
-    updateCropButtons() {
-        const hasSelection = this.cropSelection && this.currentCropImage;
-        
-        document.getElementById('resetCropSelection').disabled = !hasSelection;
-        document.getElementById('previewCrop').disabled = !hasSelection;
-        document.getElementById('applyCropSelection').disabled = !hasSelection;
-    }
-
-    resetCropSelection() {
-        if (!this.currentCropImage) return;
-        
-        // 重置为默认选择区域
-        const defaultWidth = Math.min(200, this.currentCropImage.displayWidth * 0.5);
-        const defaultHeight = Math.min(150, this.currentCropImage.displayHeight * 0.5);
-        this.cropSelection = {
-            x: (this.currentCropImage.displayWidth - defaultWidth) / 2,
-            y: (this.currentCropImage.displayHeight - defaultHeight) / 2,
-            width: defaultWidth,
-            height: defaultHeight
-        };
-        
-        this.drawCropSelection();
-        this.updateCropDisplay();
-    }
-
-    async previewCropSelection() {
-        if (!this.cropSelection || !this.currentCropImage) return;
-        
-        // 创建预览弹窗
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm';
-        modal.innerHTML = `
-            <div class="max-w-4xl w-full mx-4">
-                <div class="morandi-card rounded-3xl overflow-hidden shadow-2xl">
-                    <div class="p-6 border-b border-morandi-cloud">
-                        <div class="flex justify-between items-center">
-                            <h3 class="serif-font text-xl font-medium text-morandi-deep">✂️ 裁剪预览效果</h3>
-                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
-                                    class="text-morandi-shadow hover:text-morandi-deep transition-colors p-2">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="text-center">
-                                <h4 class="text-sm font-medium text-morandi-deep mb-3">原始图像（含选择框）</h4>
-                                <div class="bg-gray-100 rounded-xl p-4">
-                                    <canvas id="cropPreviewOriginal" class="max-w-full rounded-lg"></canvas>
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <h4 class="text-sm font-medium text-morandi-deep mb-3">裁剪后效果</h4>
-                                <div class="bg-gray-100 rounded-xl p-4">
-                                    <canvas id="cropPreviewResult" class="max-w-full rounded-lg"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-6 text-center text-sm text-morandi-shadow">
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>起始X: <strong>${Math.round(this.cropSelection.x / this.currentCropImage.scaleX)}</strong></div>
-                                <div>起始Y: <strong>${Math.round(this.cropSelection.y / this.currentCropImage.scaleY)}</strong></div>
-                                <div>宽度: <strong>${Math.round(this.cropSelection.width / this.currentCropImage.scaleX)}</strong></div>
-                                <div>高度: <strong>${Math.round(this.cropSelection.height / this.currentCropImage.scaleY)}</strong></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // 显示原始图像
-        const originalCanvas = document.getElementById('cropPreviewOriginal');
-        const originalCtx = originalCanvas.getContext('2d');
-        originalCanvas.width = this.currentCropImage.displayWidth;
-        originalCanvas.height = this.currentCropImage.displayHeight;
-        originalCtx.drawImage(this.currentCropImage.canvas, 0, 0);
-        
-        // 生成裁剪结果
-        await this.generateCropPreview();
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-    }
-
-    async generateCropPreview() {
-        const resultCanvas = document.getElementById('cropPreviewResult');
-        const resultCtx = resultCanvas.getContext('2d');
-        
-        // 计算实际裁剪区域
-        const realX = this.cropSelection.x / this.currentCropImage.scaleX;
-        const realY = this.cropSelection.y / this.currentCropImage.scaleY;
-        const realWidth = this.cropSelection.width / this.currentCropImage.scaleX;
-        const realHeight = this.cropSelection.height / this.currentCropImage.scaleY;
-        
-        resultCanvas.width = realWidth;
-        resultCanvas.height = realHeight;
-        
-        // 绘制裁剪后的图像
-        resultCtx.drawImage(
-            this.currentCropImage.originalImg,
-            realX, realY, realWidth, realHeight,
-            0, 0, realWidth, realHeight
-        );
-    }
-
-    applyCropSelection() {
-        if (!this.cropSelection || !this.currentCropImage) return;
-        
-        // 将选择信息应用到裁剪参数
-        const realX = Math.round(this.cropSelection.x / this.currentCropImage.scaleX);
-        const realY = Math.round(this.cropSelection.y / this.currentCropImage.scaleY);
-        const realWidth = Math.round(this.cropSelection.width / this.currentCropImage.scaleX);
-        const realHeight = Math.round(this.cropSelection.height / this.currentCropImage.scaleY);
-        
-        // 更新裁剪参数（用于后续处理）
-        this.manualCropParams = {
-            x: realX,
-            y: realY,
-            width: realWidth,
-            height: realHeight
-        };
-        
-        // 显示成功提示
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 z-50 morandi-card rounded-2xl p-4 shadow-2xl transform translate-x-full transition-transform duration-500';
-        toast.innerHTML = `
-            <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-gradient-to-br from-morandi-sage to-van-gogh-blue rounded-full flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="font-medium text-morandi-deep">裁剪区域已设置</div>
-                    <div class="text-xs text-morandi-shadow">${realWidth}×${realHeight} 从 (${realX}, ${realY})</div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        // 动画显示
-        setTimeout(() => {
-            toast.style.transform = 'translateX(0)';
-        }, 100);
-        
-        // 自动消失
-        setTimeout(() => {
-            toast.style.transform = 'translateX(full)';
-            setTimeout(() => toast.remove(), 500);
-        }, 3000);
-    }
-
-    async loadImageForWatermarkEditing(file) {
-        const canvas = document.getElementById('watermarkPreview');
-        const placeholder = document.getElementById('canvasPlaceholder');
-        const ctx = canvas.getContext('2d');
-        
-        const img = new Image();
-        img.onload = () => {
-            // 计算合适的显示尺寸
-            const maxWidth = 600;
-            const maxHeight = 400;
-            let { width, height } = this.calculateDisplaySize(img.width, img.height, maxWidth, maxHeight);
-            
-            canvas.width = width;
-            canvas.height = height;
-            canvas.style.display = 'block';
-            placeholder.style.display = 'none';
-            
-            // 绘制图像
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // 保存原始图像和缩放比例
-            this.currentImage = {
-                originalImg: img,
-                canvas: canvas,
-                ctx: ctx,
-                scaleX: width / img.width,
-                scaleY: height / img.height,
-                displayWidth: width,
-                displayHeight: height
-            };
-            
-            // 初始化涂抹遮罩
-            this.watermarkMask = [];
-            this.watermarkMaskHistory = [];
-            
-            // 设置画布事件
-            this.setupCanvasEvents();
-            
-            // 启用按钮
-            document.getElementById('clearMask').disabled = false;
-            document.getElementById('previewRemoval').disabled = false;
-        };
-        
-        img.src = URL.createObjectURL(file);
-    }
-
-    calculateDisplaySize(origWidth, origHeight, maxWidth, maxHeight) {
-        const ratio = Math.min(maxWidth / origWidth, maxHeight / origHeight);
-        return {
-            width: Math.round(origWidth * ratio),
-            height: Math.round(origHeight * ratio)
-        };
-    }
-
-    setupCanvasEvents() {
-        const canvas = this.currentImage.canvas;
-        const ctx = this.currentImage.ctx;
-        
-        // 鼠标事件
-        canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
-        canvas.addEventListener('mousemove', (e) => this.draw(e));
-        canvas.addEventListener('mouseup', () => this.stopDrawing());
-        canvas.addEventListener('mouseout', () => this.stopDrawing());
-        
-        // 触摸事件（移动端支持）
-        canvas.addEventListener('touchstart', (e) => {
-        
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
+                const scope = document.querySelector('input[name="watermarkAddScope"]:checked').value;
+                const filesToProcess = (scope === 'single' && this.files.length > 0) ? [this.files[0]] : this.files;
+                this.processFiles('watermark', filesToProcess);
             });
-            canvas.dispatchEvent(mouseEvent);
-        });
+            this.elements.startFilter.addEventListener('click', () => this.processFiles('filter'));
+            this.elements.applySingleFilterBtn.addEventListener('click', () => this.applySingleFilter());
+            this.elements.startAddBackground.addEventListener('click', () => this.processFiles('background'));
+            this.elements.startSplice.addEventListener('click', () => this.processSplice());
+
+            this.elements.confirmCropBtn.addEventListener('click', () => this.applyCrop());
+            this.elements.applyRemovalBtn.addEventListener('click', () => this.applyWatermarkRemoval());
+            
+            this.elements.downloadAll.addEventListener('click', () => this.downloadAllResults());
+            this.elements.clearResults.addEventListener('click', () => this.clearResults());
+            this.elements.resultsGrid.addEventListener('click', (e) => this.handleResultAction(e));
+            
+            this.bindOptionEvents();
+            this.bindInpaintingEvents();
+            this.bindDragAndDropEvents();
+            window.addEventListener('beforeunload', () => this.revokeResultURLs());
+        },
         
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
+        bindDragAndDropEvents() {
+            const fileItems = this.elements.fileItems;
+            let draggedItem = null;
+
+            fileItems.addEventListener('dragstart', (e) => {
+                if (e.target.classList.contains('draggable-item')) {
+                    draggedItem = e.target;
+                    setTimeout(() => {
+                        if (draggedItem) draggedItem.classList.add('dragging');
+                    }, 0);
+                }
             });
-            canvas.dispatchEvent(mouseEvent);
-        });
-        
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            const mouseEvent = new MouseEvent('mouseup', {});
-            canvas.dispatchEvent(mouseEvent);
-        });
-    }
 
-    startDrawing(e) {
-        this.isDrawing = true;
-        
-        // 保存当前状态到历史记录
-        this.watermarkMaskHistory.push([...this.watermarkMask]);
-        document.getElementById('undoMask').disabled = false;
-        
-        this.draw(e);
-    }
-
-    draw(e) {
-        if (!this.isDrawing || !this.currentImage) return;
-        
-        const canvas = this.currentImage.canvas;
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        
-        const brushSize = parseInt(document.getElementById('brushSize').value);
-        
-        // 添加涂抹点到遮罩
-        this.watermarkMask.push({
-            x: x,
-            y: y,
-            size: brushSize
-        });
-        
-        // 绘制涂抹效果（红色半透明覆盖）
-        const ctx = this.currentImage.ctx;
-        ctx.globalAlpha = 0.5;
-        ctx.fillStyle = '#ff6b6b';
-        ctx.beginPath();
-        ctx.arc(x, y, brushSize / 2, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-        
-        // 启用预览和清除按钮
-        document.getElementById('previewRemoval').disabled = this.watermarkMask.length === 0;
-        document.getElementById('clearMask').disabled = this.watermarkMask.length === 0;
-    }
-
-    stopDrawing() {
-        this.isDrawing = false;
-    }
-
-    clearWatermarkMask() {
-        if (!this.currentImage) return;
-        
-        // 清除遮罩
-        this.watermarkMask = [];
-        this.watermarkMaskHistory = [];
-        
-        // 重新绘制原始图像
-        const ctx = this.currentImage.ctx;
-        const img = this.currentImage.originalImg;
-        ctx.clearRect(0, 0, this.currentImage.displayWidth, this.currentImage.displayHeight);
-        ctx.drawImage(img, 0, 0, this.currentImage.displayWidth, this.currentImage.displayHeight);
-        
-        // 禁用按钮
-        document.getElementById('previewRemoval').disabled = true;
-        document.getElementById('clearMask').disabled = true;
-        document.getElementById('undoMask').disabled = true;
-    }
-
-    undoWatermarkMask() {
-        if (this.watermarkMaskHistory.length === 0) return;
-        
-        // 恢复上一个状态
-        this.watermarkMask = this.watermarkMaskHistory.pop();
-        
-        // 重新绘制
-        this.redrawWatermarkCanvas();
-        
-        // 更新按钮状态
-        document.getElementById('undoMask').disabled = this.watermarkMaskHistory.length === 0;
-        document.getElementById('previewRemoval').disabled = this.watermarkMask.length === 0;
-        document.getElementById('clearMask').disabled = this.watermarkMask.length === 0;
-    }
-
-    redrawWatermarkCanvas() {
-        if (!this.currentImage) return;
-        
-        const ctx = this.currentImage.ctx;
-        const img = this.currentImage.originalImg;
-        
-        // 清除并重新绘制原始图像
-        ctx.clearRect(0, 0, this.currentImage.displayWidth, this.currentImage.displayHeight);
-        ctx.drawImage(img, 0, 0, this.currentImage.displayWidth, this.currentImage.displayHeight);
-        
-        // 重新绘制所有涂抹标记
-        ctx.globalAlpha = 0.5;
-        ctx.fillStyle = '#ff6b6b';
-        this.watermarkMask.forEach(point => {
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, point.size / 2, 0, 2 * Math.PI);
-            ctx.fill();
-        });
-        ctx.globalAlpha =1.0;
-    }
-
-    async previewWatermarkRemoval() {
-        if (!this.currentImage || this.watermarkMask.length === 0) return;
-        
-        // 创建预览弹窗
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm';
-        modal.innerHTML = `
-            <div class="max-w-4xl w-full mx-4">
-                <div class="morandi-card rounded-3xl overflow-hidden shadow-2xl">
-                    <div class="p-6 border-b border-morandi-cloud">
-                        <div class="flex justify-between items-center">
-                            <h3 class="serif-font text-xl font-medium text-morandi-deep">🎯 去水印预览效果</h3>
-                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
-                                    class="text-morandi-shadow hover:text-morandi-deep transition-colors p-2">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="text-center">
-                                <h4 class="text-sm font-medium text-morandi-deep mb-3">原始图像（含涂抹标记）</h4>
-                                <div class="bg-gray-100 rounded-xl p-4">
-                                    <canvas id="previewOriginal" class="max-w-full rounded-lg"></canvas>
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <h4 class="text-sm font-medium text-morandi-deep mb-3">去水印效果预览</h4>
-                                <div class="bg-gray-100 rounded-xl p-4">
-                                    <canvas id="previewProcessed" class="max-w-full rounded-lg"></canvas>
-                                </div>
-                                <div id="previewProcessing" class="mt-4 text-sm text-morandi-shadow">
-                                    <div class="animate-pulse">🔄 正在处理中...</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-6 text-center">
-                            <p class="text-sm text-morandi-shadow">预览效果仅供参考，实际处理效果可能有所差异</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // 显示原始图像
-        const originalCanvas = document.getElementById('previewOriginal');
-        const originalCtx = originalCanvas.getContext('2d');
-        originalCanvas.width = this.currentImage.displayWidth;
-        originalCanvas.height = this.currentImage.displayHeight;
-        originalCtx.drawImage(this.currentImage.canvas, 0, 0);
-        
-        // 处理去水印效果
-        await this.processWatermarkRemovalPreview();
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-    }
-
-    async processWatermarkRemovalPreview() {
-        const processedCanvas = document.getElementById('previewProcessed');
-        const processedCtx = processedCanvas.getContext('2d');
-        const processingDiv = document.getElementById('previewProcessing');
-        
-        processedCanvas.width = this.currentImage.displayWidth;
-        processedCanvas.height = this.currentImage.displayHeight;
-        
-        // 复制原始图像
-        processedCtx.drawImage(this.currentImage.originalImg, 0, 0, this.currentImage.displayWidth, this.currentImage.displayHeight);
-        
-        // 获取修复算法
-        const algorithm = document.getElementById('repairAlgorithm').value;
-        const strength = parseInt(document.getElementById('manualRepairStrength').value);
-        
-        // 应用去水印效果到标记区域
-        const imageData = processedCtx.getImageData(0, 0, processedCanvas.width, processedCanvas.height);
-        
-        processingDiv.innerHTML = '<div class="animate-pulse">🎨 正在应用修复算法...</div>';
-        
-        // 延迟处理以显示动画
-        await this.sleep(500);
-        
-        for (const maskPoint of this.watermarkMask) {
-            this.applyRepairToRegion(imageData, maskPoint, algorithm, strength);
-        }
-        
-        processedCtx.putImageData(imageData, 0, 0);
-        processingDiv.innerHTML = '<div class="text-green-600">✅ 处理完成</div>';
-    }
-
-    applyRepairToRegion(imageData, maskPoint, algorithm, strength) {
-        const data = imageData.data;
-        const width = imageData.width;
-        const height = imageData.height;
-        
-        const centerX = Math.round(maskPoint.x);
-        const centerY = Math.round(maskPoint.y);
-        const radius = Math.round(maskPoint.size / 2);
-        
-        // 根据不同算法应用修复
-        switch (algorithm) {
-            case 'inpaint':
-                this.applyInpaintRepair(data, width, height, centerX, centerY, radius, strength);
-                break;
-            case 'blur':
-                this.applyBlurRepair(data, width, height, centerX, centerY, radius, strength);
-                break;
-            case 'clone':
-                this.applyCloneRepair(data, width, height, centerX, centerY, radius, strength);
-                break;
-            case 'patch':
-                this.applyPatchRepair(data, width, height, centerX, centerY, radius, strength);
-                break;
-        }
-    }
-
-    applyInpaintRepair(data, width, height, centerX, centerY, radius, strength) {
-        // 内容感知修复：分析周围像素，智能填充
-        for (let y = centerY - radius; y <= centerY + radius; y++) {
-            for (let x = centerX - radius; x <= centerX + radius; x++) {
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                if (distance > radius) continue;
-                
-                // 获取周围像素的加权平均
-                const avgColor = this.getWeightedAverageColor(data, width, height, x, y, radius * 1.5, strength);
-                const index = (y * width + x) * 4;
-                
-                const alpha = Math.max(0, 1 - distance / radius);
-                data[index] = data[index] * (1 - alpha) + avgColor.r * alpha;
-                data[index + 1] = data[index + 1] * (1 - alpha) + avgColor.g * alpha;
-                data[index + 2] = data[index + 2] * (1 - alpha) + avgColor.b * alpha;
-            }
-        }
-    }
-
-    applyBlurRepair(data, width, height, centerX, centerY, radius, strength) {
-        // 模糊填充：使用高斯模糊效果
-        const originalData = new Uint8ClampedArray(data);
-        
-        for (let y = centerY - radius; y <= centerY + radius; y++) {
-            for (let x = centerX - radius; x <= centerX + radius; x++) {
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                if (distance > radius) continue;
-                
-                const blurredColor = this.getGaussianBlurColor(originalData, width, height, x, y, strength);
-                const index = (y * width + x) * 4;
-                
-                const alpha = Math.max(0, 1 - distance / radius);
-                data[index] = data[index] * (1 - alpha) + blurredColor.r * alpha;
-                data[index + 1] = data[index + 1] * (1 - alpha) + blurredColor.g * alpha;
-                data[index + 2] = data[index + 2] * (1 - alpha) + blurredColor.b * alpha;
-            }
-        }
-    }
-
-    applyCloneRepair(data, width, height, centerX, centerY, radius, strength) {
-        // 周边复制：复制相邻区域的纹理
-        const sourceRadius = radius * 2;
-        
-        for (let y = centerY - radius; y <= centerY + radius; y++) {
-            for (let x = centerX - radius; x <= centerX + radius; x++) {
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                if (distance > radius) continue;
-                
-                // 寻找最近的非标记区域像素
-                const sourcePixel = this.findNearestSourcePixel(data, width, height, x, y, sourceRadius);
-                if (sourcePixel) {
-                    const index = (y * width + x) * 4;
-                    const alpha = Math.max(0, 1 - distance / radius) * (strength / 10);
+            fileItems.addEventListener('dragend', () => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
                     
-                    data[index] = data[index] * (1 - alpha) + sourcePixel.r * alpha;
-                    data[index + 1] = data[index + 1] * (1 - alpha) + sourcePixel.g * alpha;
-                    data[index + 2] = data[index + 2] * (1 - alpha) + sourcePixel.b * alpha;
-                }
-            }
-        }
-    }
-
-    applyPatchRepair(data, width, height, centerX, centerY, radius, strength) {
-        // 智能补丁：结合多种算法的混合效果
-        this.applyInpaintRepair(data, width, height, centerX, centerY, radius, strength * 0.6);
-        this.applyBlurRepair(data, width, height, centerX, centerY, radius * 0.8, strength * 0.4);
-    }
-
-    getWeightedAverageColor(data, width, height, centerX, centerY, sampleRadius, strength) {
-        let totalR = 0, totalG = 0, totalB = 0, totalWeight = 0;
-        
-        for (let y = centerY - sampleRadius; y <= centerY + sampleRadius; y++) {
-            for (let x = centerX - sampleRadius; x <= centerX + sampleRadius; x++) {
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                if (distance > sampleRadius) continue;
-                
-                const weight = Math.exp(-distance * distance / (sampleRadius * sampleRadius / 4));
-                const index = (y * width + x) * 4;
-                
-                totalR += data[index] * weight;
-                totalG += data[index + 1] * weight;
-                totalB += data[index + 2] * weight;
-                totalWeight += weight;
-            }
-        }
-        
-        return {
-            r: totalWeight > 0 ? totalR / totalWeight : 0,
-            g: totalWeight > 0 ? totalG / totalWeight : 0,
-            b: totalWeight > 0 ? totalB / totalWeight : 0
-        };
-    }
-
-    getGaussianBlurColor(data, width, height, centerX, centerY, strength) {
-        const blurRadius = Math.max(1, strength);
-        let totalR = 0, totalG = 0, totalB = 0, totalWeight = 0;
-        
-        for (let y = centerY - blurRadius; y <= centerY + blurRadius; y++) {
-            for (let x = centerX - blurRadius; x <= centerX + blurRadius; x++) {
-                if (x < 0 || x >= width || y < 0 || y >= height) continue;
-                
-                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                const weight = Math.exp(-distance * distance / (2 * blurRadius * blurRadius));
-                const index = (y * width + x) * 4;
-                
-                totalR += data[index] * weight;
-                totalG += data[index + 1] * weight;
-                totalB += data[index + 2] * weight;
-                totalWeight += weight;
-            }
-        }
-        
-        return {
-            r: totalWeight > 0 ? totalR / totalWeight : 0,
-            g: totalWeight > 0 ? totalG / totalWeight : 0,
-            b: totalWeight > 0 ? totalB / totalWeight : 0
-        };
-    }
-
-    findNearestSourcePixel(data, width, height, targetX, targetY, searchRadius) {
-        for (let radius = 1; radius <= searchRadius; radius++) {
-            for (let angle = 0; angle < 360; angle += 45) {
-                const radians = angle * Math.PI / 180;
-                const x = Math.round(targetX + radius * Math.cos(radians));
-                const y = Math.round(targetY + radius * Math.sin(radians));
-                
-                if (x >= 0 && x < width && y >= 0 && y < height) {
-                    const index = (y * width + x) * 4;
-                    return {
-                        r: data[index],
-                        g: data[index + 1],
-                        b: data[index + 2]
-                    };
-                }
-            }
-        }
-        return null;
-    }
-
-    updateBackgroundInputs() {
-        const type = document.getElementById('backgroundType').value;
-        const solidOptions = document.getElementById('solidColorOptions');
-        const gradientOptions = document.getElementById('gradientOptions');
-        
-        if (type === 'gradient') {
-            solidOptions.style.display = 'none';
-            gradientOptions.style.display = 'block';
-        } else {
-            solidOptions.style.display = 'block';
-            gradientOptions.style.display = 'none';
-        }
-    }
-
-    updateSpliceInputs() {
-        const mode = document.getElementById('spliceMode').value;
-        const gridOptions = document.getElementById('gridOptions');
-        
-        gridOptions.style.display = mode === 'grid' ? 'block' : 'none';
-    }
-
-    applyFilterPreset(preset) {
-        const presets = {
-            none: { brightness: 100, contrast: 100, saturation: 100, blur: 0 },
-            grayscale: { brightness: 100, contrast: 110, saturation: 0, blur: 0 },
-            sepia: { brightness: 110, contrast: 90, saturation: 80, blur: 0 },
-            vintage: { brightness: 90, contrast: 120, saturation: 70, blur: 1 }
-        };
-
-        const values = presets[preset];
-        if (values) {
-            Object.keys(values).forEach(key => {
-                const input = document.getElementById(key);
-                const output = document.getElementById(key + 'Value');
-                if (input && output) {
-                    input.value = values[key];
-                    output.textContent = values[key] + (key === 'blur' ? 'px' : '%');
+                    const newFileOrder = [];
+                    const children = [...this.elements.fileItems.children];
+                    children.forEach(child => {
+                        const fileId = child.dataset.fileId;
+                        const file = this.files.find(f => f.id === fileId);
+                        if (file) newFileOrder.push(file);
+                    });
+                    this.files = newFileOrder;
+                    
+                    draggedItem = null;
                 }
             });
-        }
-    }
 
-    async startProcessing(mode) {
+            fileItems.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterElement = getDragAfterElement(fileItems, e.clientY);
+                if (draggedItem) {
+                    if (afterElement == null) {
+                        fileItems.appendChild(draggedItem);
+                    } else {
+                        fileItems.insertBefore(draggedItem, afterElement);
+                    }
+                }
+            });
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll('.draggable-item:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+        },
+
+        bindOptionEvents() {
+            this.elements.jpegQuality.addEventListener('input', (e) => this.elements.qualityValue.textContent = e.target.value);
+            
+            this.elements.customQuality.addEventListener('input', (e) => {
+                this.elements.customQualityValue.textContent = e.target.value;
+                this.elements.compressLevel.value = 'custom';
+            });
+            this.elements.compressLevel.addEventListener('change', (e) => {
+                if (e.target.value !== 'custom') {
+                    const quality = Math.round(parseFloat(e.target.value) * 100);
+                    this.elements.customQuality.value = quality;
+                    this.elements.customQualityValue.textContent = quality;
+                }
+            });
+
+            this.elements.resizeTypeRadios.forEach(radio => radio.addEventListener('change', (e) => {
+                const isResize = e.target.value === 'resize';
+                this.elements.resizeOptions.style.display = isResize ? 'block' : 'none';
+                this.elements.cropOptions.style.display = isResize ? 'none' : 'block';
+                this.elements.startResize.style.display = isResize ? 'block' : 'none';
+                if (e.target.value === 'crop') {
+                    this.initCropper();
+                } else {
+                    this.destroyCropper();
+                }
+            }));
+            
+            this.elements.cropWidthInput.addEventListener('change', () => this.setCropperDataFromInput());
+            this.elements.cropHeightInput.addEventListener('change', () => this.setCropperDataFromInput());
+            this.elements.cropScopeRadios.forEach(radio => radio.addEventListener('change', () => this.updateCropButtonText()));
+
+            this.elements.keepAspectRatio.addEventListener('change', () => {
+                 this.elements.targetHeight.disabled = this.elements.keepAspectRatio.checked;
+            });
+            
+            this.elements.resizeMode.addEventListener('change', (e) => {
+                const disableW = e.target.value === 'height';
+                const disableH = e.target.value === 'width' || e.target.value === 'percentage';
+                this.elements.targetWidth.disabled = disableW;
+                this.elements.targetHeight.disabled = disableH || this.elements.keepAspectRatio.checked;                    });
+            
+            this.elements.watermarkActionRadios.forEach(radio => radio.addEventListener('change', e => {
+                const isAdd = e.target.value === 'add';
+                this.elements.addWatermarkOptions.style.display = isAdd ? 'block' : 'none';
+                this.elements.removeWatermarkOptions.style.display = isAdd ? 'none' : 'block';
+                this.elements.startWatermark.style.display = isAdd ? 'block' : 'none';
+                this.elements.removeWatermarkOptions.querySelector('#applyRemovalBtn').style.display = isAdd ? 'none' : 'block';
+
+                if (isAdd) {
+                    this.destroyInpainting();
+                } else {
+                    this.initInpainting();
+                }
+                this.updateButtonStates();
+                this.updateWatermarkButtonText();
+            }));
+            
+            this.elements.watermarkAddScopeRadios.forEach(radio => radio.addEventListener('change', () => this.updateWatermarkButtonText()));
+            this.elements.watermarkRemoveScopeRadios.forEach(radio => radio.addEventListener('change', () => this.updateWatermarkButtonText()));
+
+            this.elements.watermarkTypeRadios.forEach(radio => radio.addEventListener('change', e => {
+                const isText = e.target.value === 'text';
+                this.elements.textWatermarkFields.style.display = isText ? 'block' : 'none';
+                this.elements.imageWatermarkFields.style.display = isText ? 'none' : 'block';
+            }));
+
+            this.elements.watermarkImageScale.addEventListener('input', e => this.elements.watermarkImageScaleValue.textContent = Math.round(e.target.value * 100));
+            this.elements.watermarkOpacity.addEventListener('input', e => this.elements.opacityValue.textContent = Math.round(e.target.value * 100));
+            this.elements.brushSize.addEventListener('input', e => {
+                this.inpaintingState.brushSize = e.target.value;
+                this.elements.brushSizeValue.textContent = e.target.value;
+            });
+            this.elements.clearMaskBtn.addEventListener('click', () => this.clearMask());
+
+            this.elements.filterPresetBtns.forEach(btn => btn.addEventListener('click', () => this.setActiveFilter(btn.dataset.filter)));
+            
+            ['brightness', 'contrast', 'saturation', 'blur'].forEach(type => {
+                const el = this.elements[type];
+                const valEl = this.elements[`${type}Value`];
+                const suffix = type === 'blur' ? 'px' : '%';
+                el.addEventListener('input', e => {
+                    valEl.textContent = e.target.value + suffix;
+                    this.clearActiveFilter();
+                    this.updateFilterPreview();
+                });
+            });
+
+            this.elements.backgroundTypeRadios.forEach(radio => radio.addEventListener('change', e => {
+                const selectedType = e.target.value;
+                this.elements.solidBgOptions.style.display = selectedType === 'solid' ? 'block' : 'none';
+                this.elements.gradientBgOptions.style.display = selectedType === 'gradient' ? 'block' : 'none';
+            }));
+
+            this.elements.spliceMode.addEventListener('change', (e) => {
+                const mode = e.target.value;
+                const isScatter = mode === 'random-scatter';
+                const isFixedCollage = mode === 'fixed-collage';
+                
+                this.elements.spliceSpacingContainer.style.display = isScatter || isFixedCollage ? 'none' : 'block';
+                this.elements.spliceFixedSizeContainer.style.display = isFixedCollage ? 'grid' : 'none';
+            });
+        },
+
+        preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        },
+
+        handleDrop(e) {
+            this.handleFileSelection(e.dataTransfer.files);
+        },
+
+        handleFileSelection(selectedFiles) {
+            const newFiles = [...selectedFiles]
+                .filter(file => new RegExp('^image/(jpeg|png|webp)$').test(file.type))
+                .map(file => {
+                    file.id = `file-${Date.now()}-${Math.random()}`;
+                    return file;
+                });
+            this.files.push(...newFiles);
+            this.updateUI();
+        },
+
+        clearFiles() {
+            this.files = [];
+            this.elements.fileInput.value = '';
+            this.updateUI();
+            this.resetAnalysisView();
+        },
+
+        removeFile(fileId) {
+            this.files = this.files.filter(f => f.id !== fileId);
+            this.updateUI();
+            this.resetAnalysisView();
+        },
         
-        // 特殊处理需要多个文件的功能
-        if (mode === 'splice') {
-            if (this.files.length < 2) {
-                alert('图像拼接需要至少2张图片');
+        updateCropButtonText() {
+            const scope = document.querySelector('input[name="cropScope"]:checked').value;
+            this.elements.confirmCropBtn.textContent = scope === 'single' ? '应用裁剪到当前图' : '应用裁剪到全部图';
+        },
+
+        updateWatermarkButtonText() {
+            const action = document.querySelector('input[name="watermarkAction"]:checked').value;
+            if (action === 'add') {
+                const scope = document.querySelector('input[name="watermarkAddScope"]:checked').value;
+                this.elements.startWatermark.querySelector('span').textContent = scope === 'single' ? '开始添加水印' : '开始批量添加水印';
+            } else {
+                const scope = document.querySelector('input[name="watermarkRemoveScope"]:checked').value;
+                this.elements.applyRemovalBtn.textContent = scope === 'single' ? '应用消除（当前图）' : '应用消除（全部图）';
+            }
+        },
+
+        updateUI() {
+            this.updateFileList();
+            this.updateButtonStates();
+            this.initCropper();
+            this.updateFilterPreview();
+            this.initInpainting();
+        },
+
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+        
+        async analyzeImage(file) {
+            if (!file) {
+                this.resetAnalysisView();
                 return;
             }
-            return this.processSplice();
-        }
+            
+            const analyzeTabActive = document.querySelector('[data-tab="analyze"]').classList.contains('active');
+            if (!analyzeTabActive) return;
+
+            this.elements.analysisPlaceholder.classList.add('hidden');
+            this.elements.analysisInfoSection.classList.remove('hidden');
+
+            this.elements.analysisFilename.textContent = file.name;
+            this.elements.analysisSize.textContent = this.formatFileSize(file.size);
+            this.elements.analysisType.textContent = file.type;
+
+            const img = new Image();
+            const objectURL = URL.createObjectURL(file);
+            img.onload = () => {
+                this.elements.analysisDimensions.textContent = `${img.naturalWidth} x ${img.naturalHeight}`;
+                URL.revokeObjectURL(objectURL);
+            };
+            img.src = objectURL;
+
+            try {
+                const histogramData = await this.imageOps.getHistogramData(file);
+                this.renderHistogram(histogramData);
+            } catch (error) {
+                console.error("Error generating histogram:", error);
+            }
+        },
+
+        resetAnalysisView() {
+            this.elements.analysisInfoSection.classList.add('hidden');
+            this.elements.analysisPlaceholder.classList.remove('hidden');
+            if (this.histogramChart) {
+                this.histogramChart.destroy();
+                this.histogramChart = null;
+            }
+            this.elements.fileItems.querySelectorAll('.file-item.analyzing').forEach(el => {
+                el.classList.remove('analyzing');
+            });
+        },
+
+        renderHistogram(data) {
+            if (this.histogramChart) {
+                this.histogramChart.destroy();
+            }
+
+            const labels = Array.from({ length: 256 }, (_, i) => i);
+
+            this.histogramChart = new Chart(this.elements.histogramCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Red',
+                            data: data.r,
+                            borderColor: 'rgba(255, 99, 132, 0.8)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            fill: 'start',
+                        },
+                        {
+                            label: 'Green',
+                            data: data.g,
+                            borderColor: 'rgba(75, 192, 192, 0.8)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            fill: 'start',
+                        },
+                        {
+                            label: 'Blue',
+                            data: data.b,
+                            borderColor: 'rgba(54, 162, 235, 0.8)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderWidth: 1,
+                            pointRadius: 0,
+                            fill: 'start',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Pixel Intensity', color: 'var(--morandi-shadow)' },
+                            ticks: { maxTicksLimit: 10, color: 'var(--morandi-stone)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Pixel Count', color: 'var(--morandi-shadow)' },
+                            beginAtZero: true,
+                            ticks: {
+                               color: 'var(--morandi-stone)',
+                               callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                                    if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                                    return value;
+                               }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: 'var(--morandi-deep)'
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                        }
+                    }
+                }
+            });
+        },
         
-        if (this.isProcessing || this.files.length === 0) return;
-
-        this.isProcessing = true;
-        this.showProgress();
-        
-        const results = [];
-        const totalFiles = this.files.length;
-
-        for (let i = 0; i < totalFiles; i++) {
-            const file = this.files[i];
-            const progress = ((i + 1) / totalFiles) * 100;
+        updateFileList() {
+            this.elements.fileItems.innerHTML = '';
+            if (this.files.length === 0) {
+                this.elements.fileList.classList.add('hidden');
+                return;
+            }
+            this.elements.fileList.classList.remove('hidden');
+            this.elements.fileCount.textContent = this.files.length;
             
-            this.updateProgress(progress, `正在处理: ${file.name}`, i + 1, 0, totalFiles - i - 1);
-            
-            await this.sleep(500 + Math.random() * 1000);
-            
-            const result = await this.processFile(file, mode);
-            results.push(result);
-        }
-
-        this.results.push(...results);
-        this.showResults();
-        this.hideProgress();
-        this.isProcessing = false;
-        this.updateUI();
-    }
-
-    async batchProcessAll() {
-        if (this.isProcessing || this.files.length === 0) return;
-
-        this.isProcessing = true;
-        this.showProgress();
-        
-        const results = [];
-        const totalFiles = this.files.length;
-        const operations = ['convert', 'compress', 'resize', 'watermark', 'filter'];
-
-        for (let i = 0; i < totalFiles; i++) {
-            const file = this.files[i];
-            let processedFile = file;
-            
-            for (let j = 0; j < operations.length; j++) {
-                const operation = operations[j];
-                const progress = ((i * operations.length + j + 1) / (totalFiles * operations.length)) * 100;
+            const fragment = document.createDocumentFragment();
+            this.files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-item draggable-item flex items-center p-3 rounded-lg transition-colors duration-200 cursor-pointer';
+                item.draggable = true;
+                item.dataset.fileId = file.id;
+                const objectURL = URL.createObjectURL(file);
+                item.innerHTML = `
+                    <div class="flex-shrink-0 w-12 h-12 bg-gray-200 rounded-md overflow-hidden mr-4">
+                        <img src="${objectURL}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-sm font-medium text-gray-800 truncate">${file.name}</p>
+                        <p class="text-xs text-gray-500">${this.formatFileSize(file.size)}</p>
+                    </div>
+                    <button data-id="${file.id}" type="button" class="remove-file-btn flex-shrink-0 ml-4 text-gray-400 hover:text-red-500 transition-colors">&times;</button>
+                `;
+                item.querySelector('img').onload = () => URL.revokeObjectURL(objectURL);
+                item.querySelector('.remove-file-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.removeFile(file.id);
+                });
                 
-                this.updateProgress(
-                    progress, 
-                    `${file.name} - ${this.getOperationName(operation)}`,
-                    i * operations.length + j + 1,
-                    0,
-                    totalFiles * operations.length - (i * operations.length + j + 1)
+                item.addEventListener('click', async () => {
+                    const analyzeTabActive = document.querySelector('[data-tab="analyze"]').classList.contains('active');
+                    if (analyzeTabActive) {
+                        if (this.isProcessing) {
+                            return;
+                        }
+                
+                        try {
+                            this.isProcessing = true;
+                            this.updateButtonStates();
+                
+                            this.elements.fileItems.querySelectorAll('.file-item.analyzing').forEach(el => el.classList.remove('analyzing'));
+                            item.classList.add('analyzing');
+                
+                            await this.analyzeImage(file);
+                
+                        } catch (error) {
+                            console.error(`图像分析失败: ${file.name}`, error);
+                        } finally {
+                            this.isProcessing = false;
+                            this.updateButtonStates();
+                        }
+                    }
+                });
+
+                fragment.appendChild(item);
+            });
+            this.elements.fileItems.appendChild(fragment);
+        },
+        
+        updateButtonStates() {
+            const hasFiles = this.files.length > 0;
+            const canProcess = hasFiles && !this.isProcessing;
+
+            [ 'startConvert', 'startCompress', 'startResize', 'startWatermark', 'startFilter', 'startAddBackground' ].forEach(id => {
+                if(this.elements[id]) this.elements[id].disabled = !canProcess;
+            });
+            if (this.elements.startSplice) {
+                this.elements.startSplice.disabled = this.files.length < 2 || this.isProcessing;
+            }
+            if (this.elements.confirmCropBtn) {
+                this.elements.confirmCropBtn.disabled = !this.cropper || this.isProcessing;
+            }
+            if (this.elements.applySingleFilterBtn) {
+                this.elements.applySingleFilterBtn.disabled = !canProcess;
+            }
+            if (this.elements.applyRemovalBtn) {
+                this.elements.applyRemovalBtn.disabled = (!hasFiles || !this.isInpaintingActive()) || this.isProcessing;
+            }
+        },
+        
+        switchTab(tabId) {
+            this.elements.tabsContainer.querySelectorAll('button').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabId);
+            });
+            this.elements.panelsContainer.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.toggle('hidden', panel.id !== `${tabId}Panel`);
+            });
+
+            if (tabId !== 'analyze') {
+                this.resetAnalysisView();
+            }
+
+            const isAddWatermark = document.querySelector('input[name="watermarkAction"]:checked').value === 'add';
+            this.elements.startWatermark.style.display = (tabId === 'watermark' && isAddWatermark) ? 'block' : 'none';
+            this.elements.applyRemovalBtn.style.display = (tabId === 'watermark' && !isAddWatermark) ? 'block' : 'none';
+
+            this.updateUI();
+        },
+
+        async processFiles(operation, filesToProcess) {
+            const files = filesToProcess || this.files;
+            if (files.length === 0) {
+                alert('请先选择文件');
+                return;
+            }
+            if (this.isProcessing) {
+                alert('正在处理中，请稍候...');
+                return;
+            }
+
+            this.isProcessing = true;
+            this.updateButtonStates();
+
+            this.elements.progressSection.classList.remove('hidden');
+            this.elements.resultsSection.classList.remove('hidden');
+            this.elements.currentTask.textContent = `准备处理 ${files.length} 个文件...`;
+            this.updateProgress(0);
+            
+            try {
+                const options = this.getOptionsFor(operation);
+                let processedCount = 0;
+                const totalFiles = files.length;
+
+                const processingPromises = files.map((file) =>
+                    this.processSingleFile(file, operation, options)
+                        .then(result => {
+                            this.addResultItem(result);
+                            return result;
+                        })
+                        .catch(error => {
+                            console.error(`处理文件 ${file.name} 失败:`, error);
+                            this.addResultItem({ originalName: file.name, error: error.message, operation: operation });
+                            return { error: true };
+                        })
+                        .finally(() => {
+                            processedCount++;
+                            const progress = (processedCount / totalFiles) * 100;
+                            this.updateProgress(progress);
+                            this.elements.currentTask.textContent = `已处理 ${processedCount} / ${totalFiles} 个文件...`;
+                        })
                 );
                 
-                await this.sleep(300);
-                processedFile = await this.processFile(processedFile, operation);
+                await Promise.all(processingPromises);
+
+                this.elements.currentTask.textContent = '所有任务处理完成！';
+                this.updateProgress(100);
+            } catch (error) {
+                alert(error.message);
+                this.elements.currentTask.textContent = `处理失败: ${error.message}`;
+            } finally {
+                this.isProcessing = false;
+                this.updateButtonStates();
+                setTimeout(() => {
+                    this.elements.progressSection.classList.add('hidden');
+                    this.updateProgress(0);
+                }, 2000);
             }
-            
-            results.push(processedFile);
-        }
+        },
 
-        this.results.push(...results);
-        this.showResults();
-        this.hideProgress();
-        this.isProcessing = false;
-        this.updateUI();
-    }
+        async processSplice() {
+            if (this.files.length < 2) {
+                alert('请至少选择两个文件进行拼接。');
+                return;
+            }
 
-    getOperationName(operation) {
-        const names = {
-            convert: '格式转换',
-            compress: '压缩优化',
-            resize: '尺寸调整',
-            watermark: '水印处理',
-            filter: '艺术滤镜',
-            background: '一键加底',
-            splice: '图像拼接',
-            analyze: '图像分析'
-        };
-        return names[operation] || operation;
-    }
+            this.isProcessing = true;
+            this.updateButtonStates();
 
-    async processFile(file, mode) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
+            this.elements.progressSection.classList.remove('hidden');
+            this.elements.resultsSection.classList.remove('hidden');
+            this.elements.currentTask.textContent = `开始拼接 ${this.files.length} 个文件...`;
+            this.updateProgress(0);
+
+            try {
+                const mode = this.elements.spliceMode.value;
+                const options = {
+                    mode: mode,
+                    spacing: parseInt(this.elements.spliceSpacing.value, 10) || 0,
+                };
+
+                if (mode === 'fixed-collage') {
+                    options.width = parseInt(this.elements.spliceFixedWidth.value, 10);
+                    options.height = parseInt(this.elements.spliceFixedHeight.value, 10);
+                    if (!options.width || !options.height || options.width <= 0 || options.height <= 0) {
+                        throw new Error('固定尺寸拼贴需要提供有效的宽度和高度。');
+                    }
+                }
+
+                this.elements.currentTask.textContent = '正在加载所有图片...';
+                const bitmaps = await Promise.all(this.files.map(file => createImageBitmap(file)));
+                this.updateProgress(30);
+
+                this.elements.currentTask.textContent = '正在拼接图片...';
+                const resultBlob = await this.imageOps.splice(bitmaps, options);
+                this.updateProgress(80);
+
+                const newName = `spliced_image_${options.mode}.${resultBlob.type.split('/')[1]}`;
+                this.addResultItem({
+                    newName: newName,
+                    blob: resultBlob,
+                    url: URL.createObjectURL(resultBlob),
+                    operation: 'splice'
+                });
+                this.updateProgress(100);
+                this.elements.currentTask.textContent = '拼接完成！';
+            } catch (error) {
+                console.error('拼接失败:', error);
+                this.elements.currentTask.textContent = `拼接失败: ${error.message}`;
+                this.addResultItem({ originalName: '拼接任务', error: error.message, operation: 'splice' });
+            } finally {
+                this.isProcessing = false;
+                this.updateButtonStates();
+                setTimeout(() => {
+                    this.elements.progressSection.classList.add('hidden');
+                    this.updateProgress(0);
+                }, 2000);
+            }
+        },
         
-        return new Promise((resolve, reject) => {
-            img.onload = async () => {
+        async processSingleFile(file, operation, options) {
+            this.elements.currentTask.textContent = `正在处理: ${file.name}`;
+            let resultBlob;
+
+            if (operation === 'compress') {
+                resultBlob = await this.imageOps.compress(file, options);
+            } else {
+                let imageBitmap = null;
                 try {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-
-                    let skipCanvas = false;
-                    let useOriginal = false;
-                    let compressResult = null;
-                    
-                    switch(mode) {
-                        case 'convert':
-                            await this.applyFormatConversion(canvas, ctx, img);
-                            break;
-                        case 'compress':
-                            compressResult = await this.applyCompression(canvas, ctx, img, file);
-                            break;
-                        case 'resize':
-                            await this.applyResize(canvas, ctx, img);
-                            break;
-                        case 'watermark':
-                            await this.applyWatermark(canvas, ctx, img);
-                            break;
-                        case 'filter':
-                            await this.applyFilter(canvas, ctx, img);
-                            break;
-                        case 'background':
-                            await this.applyBackground(canvas, ctx, img);
-                            break;
-                        case 'analyze':
-                            // For 'analyze' mode, the promise should resolve immediately after analysis
-                            // and not wait for canvas.toDataURL.
-                            const analysisResult = await this.analyzeImage(file, img);
-                            resolve(analysisResult);
-                            return; // Exit here to prevent further processing
+                    imageBitmap = await createImageBitmap(file);
+                    switch (operation) {
+                        case 'convert': resultBlob = await this.imageOps.convert(imageBitmap, options); break;
+                        case 'resize': resultBlob = await this.imageOps.resize(imageBitmap, options); break;
+                        case 'watermark': resultBlob = await this.imageOps.watermark(imageBitmap, options); break;
+                        case 'watermark_remove': resultBlob = await this.imageOps.removeWatermark(imageBitmap, options); break;
+                        case 'filter': resultBlob = await this.imageOps.filter(imageBitmap, options); break;
+                        case 'background': resultBlob = await this.imageOps.addBackground(imageBitmap, options); break;
+                        default: throw new Error('未知的操作');
                     }
-
-                    let targetFormat = document.getElementById('targetFormat')?.value || 'png';
-                    const quality = parseInt(document.getElementById('jpegQuality')?.value || 85) / 100;
-                    
-                    // 处理输出
-                    let processedUrl;
-                    let actualFormat = targetFormat;
-                    let fileSize = 0;
-                    let finalQuality = quality;
-                    
-                    // 如果是压缩模式且使用了目标大小
-                    if (mode === 'compress' && compressResult && compressResult.useTargetSize) {
-                        actualFormat = 'jpeg'; // 压缩时使用JPEG格式
-                        finalQuality = compressResult.quality;
+                } finally {
+                    if (imageBitmap) {
+                        imageBitmap.close();
                     }
-                    
-                    processedUrl = canvas.toDataURL(`image/${actualFormat}`, finalQuality);
-                    fileSize = this.getCanvasSizeBytes(canvas, actualFormat, finalQuality);
-                    
-                    const originalName = file.name || 'processed';
-                    
-                    resolve({
-                        originalName: originalName,
-                        processedName: originalName.replace(/\.[^/.]+$/, `_${mode}.${actualFormat}`),
-                        originalUrl: file instanceof File ? URL.createObjectURL(file) : file.processedUrl || file.originalUrl,
-                        processedUrl: processedUrl,
-                        type: mode,
-                        size: fileSize || this.getCanvasSizeBytes(canvas, actualFormat, quality),
-                        format: actualFormat
-                    });
-                } catch (error) {
-                    console.error('文件处理失败:', error);
-                    // 处理失败时返回原文件信息
-                    const originalName = file.name || 'processed';
-                    resolve({
-                        originalName: originalName,
-                        processedName: originalName.replace(/\.[^/.]+$/, `_${mode}_error.${file.type ? file.type.split('/')[1] : 'unknown'}`),
-                        originalUrl: file instanceof File ? URL.createObjectURL(file) : file.processedUrl || file.originalUrl,
-                        processedUrl: file instanceof File ? URL.createObjectURL(file) : file.processedUrl || file.originalUrl,
-                        type: mode,
-                        size: file.size || 0,
-                        format: file.type ? file.type.split('/')[1] : 'unknown',
-                        error: '处理失败，返回原文件'
-                    });
                 }
-            };
+            }
             
-            img.onerror = () => {
-                console.error('图片加载失败');
-                const originalName = file.name || 'processed';
-                resolve({
-                    originalName: originalName,
-                    processedName: originalName.replace(/\.[^/.]+$/, `_${mode}_error.${file.type.split('/')[1]}`),
-                    originalUrl: file instanceof File ? URL.createObjectURL(file) : file.processedUrl || file.originalUrl,
-                    processedUrl: file instanceof File ? URL.createObjectURL(file) : file.processedUrl || file.originalUrl,
-                    type: mode,
-                    size: file.size || 0,
-                    format: file.type ? file.type.split('/')[1] : 'unknown',
-                    error: '图片加载失败'
-                });
-            };
-            
-            // If file is already a processed object (e.g., from batch processing), use its processedUrl
-            if (file instanceof File) {
-                img.src = URL.createObjectURL(file);
-            } else if (file && file.processedUrl) { // Check if file has a processedUrl property
-                img.src = file.processedUrl;
+            let newName;
+            if (operation === 'convert') {
+                 newName = `${file.name.split('.').slice(0, -1).join('.')}.${options.format}`;
             } else {
-                // Fallback for unexpected file types
-                console.error('Invalid file object for image loading:', file);
-                const originalName = file.name || 'unknown_file';
-                resolve({
-                    originalName: originalName,
-                    processedName: `${originalName}_error.unknown`,
-                    originalUrl: '#', // Placeholder
-                    processedUrl: '#', // Placeholder
-                    type: mode,
-                    size: 0,
-                    format: 'unknown',
-                    error: '无效文件对象'
-                });
+                 const extension = resultBlob.type.split('/')[1];
+                 newName = `${file.name.split('.').slice(0, -1).join('.')}_${operation}.${extension}`;
             }
-        });
-    }
 
-    async applyFormatConversion(canvas, ctx, img) {
-        const bgColor = document.getElementById('backgroundColor').value;
-        if (bgColor !== 'transparent') {
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalCompositeOperation = 'source-over';
-        }
-    }
-
-    async applyCompression(canvas, ctx, img, file) {
-        // 获取压缩设置
-        const level = document.getElementById('compressLevel').value;
-        const targetSizeKB = parseInt(document.getElementById('targetSize').value) || 0;
-        let quality = 0.7;
-        
-        switch(level) {
-            case 'light': quality = 0.9; break;
-            case 'medium': quality = 0.7; break;  
-            case 'heavy': quality = 0.5; break;
-            case 'custom': quality = parseInt(document.getElementById('customQuality').value) / 100; break;
-        }
-
-        // 如果设置了目标大小，进行智能压缩
-        if (targetSizeKB > 0) {
-            const targetSizeBytes = targetSizeKB * 1024;
-            let finalQuality = await this.findOptimalQuality(canvas, targetSizeBytes, quality);
-            return { quality: finalQuality, targetSizeKB, useTargetSize: true };
-        }
-        
-        return { quality, targetSizeKB: 0, useTargetSize: false };
-    }
-
-    async findOptimalQuality(canvas, targetSizeBytes, initialQuality) {
-        let minQuality = 0.1;
-        let maxQuality = 1.0;
-        let bestQuality = initialQuality;
-        let iterations = 0;
-        const maxIterations = 8; // 限制迭代次数避免无限循环
-
-        // 首先测试初始质量
-        let currentSize = this.getCanvasSizeBytes(canvas, 'jpeg', initialQuality);
-        
-        // 如果初始质量已经满足要求，直接返回
-        if (currentSize <= targetSizeBytes) {
-            return initialQuality;
-        }
-
-        // 二分法查找最优质量
-        while (iterations < maxIterations && Math.abs(maxQuality - minQuality) > 0.05) {
-            const testQuality = (minQuality + maxQuality) / 2;
-            const testSize = this.getCanvasSizeBytes(canvas, 'jpeg', testQuality);
-            
-            if (testSize <= targetSizeBytes) {
-                // 文件大小符合要求，尝试提高质量
-                minQuality = testQuality;
-                bestQuality = testQuality;
-            } else {
-                // 文件太大，降低质量
-                maxQuality = testQuality;
-            }
-            
-            iterations++;
-        }
-
-        // 确保最终质量不会产生过大的文件
-        const finalSize = this.getCanvasSizeBytes(canvas, 'jpeg', bestQuality);
-        if (finalSize > targetSizeBytes && bestQuality > 0.1) {
-            bestQuality = Math.max(0.1, bestQuality - 0.1);
-        }
-
-        return Math.max(0.1, bestQuality); // 确保质量不低于10%
-    }
-
-    getCanvasSizeBytes(canvas, format, quality) {
-        const dataURL = canvas.toDataURL(`image/${format}`, quality);
-        const base64String = dataURL.split(',')[1];
-        return Math.round(base64String.length * 0.75); // Base64到字节的转换
-    }
-
-    async applyResize(canvas, ctx, img) {
-        const resizeType = document.querySelector('input[name="resizeType"]:checked').value;
-        
-        if (resizeType === 'crop') {
-            await this.applyCrop(canvas, ctx, img);
-        } else {
-            await this.applyResizeTransform(canvas, ctx, img);
-        }
-    }
-
-    async applyResizeTransform(canvas, ctx, img) {
-        const mode = document.getElementById('resizeMode').value;
-        const keepAspect = document.getElementById('keepAspectRatio').checked;
-        const targetWidth = parseInt(document.getElementById('targetWidth').value);
-        const targetHeight = parseInt(document.getElementById('targetHeight').value);
-        
-        let newWidth = img.width;
-        let newHeight = img.height;
-        
-        switch(mode) {
-            case 'percentage':
-                if (targetWidth) {
-                    const scale = targetWidth / 100;
-                    newWidth = img.width * scale;
-                    newHeight = img.height * scale;
-                }
-                break;
-            case 'fixed':
-                if (targetWidth) newWidth = targetWidth;
-                if (targetHeight) newHeight = targetHeight;
-                if (keepAspect && targetWidth && !targetHeight) {
-                    newHeight = (img.height * newWidth) / img.width;
-                } else if (keepAspect && targetHeight && !targetWidth) {
-                    newWidth = (img.width * newHeight) / img.height;
-                }
-                break;
-            case 'width':
-                if (targetWidth) {
-                    newWidth = targetWidth;
-                    if (keepAspect) {
-                        newHeight = (img.height * newWidth) / img.width;
-                    }
-                }
-                break;
-            case 'height':
-                if (targetHeight) {
-                    newHeight = targetHeight;
-                    if (keepAspect) {
-                        newWidth = (img.width * newHeight) / img.height;
-                    }
-                }
-                break;
-        }
-        
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        ctx.drawImage(img, 0, 0, newWidth, newHeight);
-    }
-
-    async applyCrop(canvas, ctx, img) {
-        const cropMode = document.querySelector('input[name="cropMode"]:checked').value;
-        
-        let cropX, cropY, cropWidth, cropHeight;
-        
-        if (cropMode === 'manual' && this.manualCropParams) {
-            // 使用手动选择的裁剪参数
-            cropX = this.manualCropParams.x;
-            cropY = this.manualCropParams.y;
-            cropWidth = this.manualCropParams.width;
-            cropHeight = this.manualCropParams.height;
-        } else {
-            // 使用预设尺寸裁剪
-            cropWidth = parseInt(document.getElementById('cropWidth').value) || img.width;
-            cropHeight = parseInt(document.getElementById('cropHeight').value) || img.height;
-            const position = document.getElementById('cropPosition').value;
-            
-            cropX = parseInt(document.getElementById('cropX').value) || 0;
-            cropY = parseInt(document.getElementById('cropY').value) || 0;
-            
-            // 根据位置计算裁剪坐标
-            switch(position) {
-                case 'center':
-                    cropX = (img.width - cropWidth) / 2;
-                    cropY = (img.height - cropHeight) / 2;
-                    break;
-                case 'top-left':
-                    cropX = 0;
-                    cropY = 0;
-                    break;
-                case 'top-right':
-                    cropX = img.width - cropWidth;
-                    cropY = 0;
-                    break;
-                case 'bottom-left':
-                    cropX = 0;
-                    cropY = img.height - cropHeight;
-                    break;
-                case 'bottom-right':
-                    cropX = img.width - cropWidth;
-                    cropY = img.height - cropHeight;
-                    break;
-                case 'custom':
-                    // 使用用户输入的坐标
-                    break;
-            }
-        }
-        
-        // 确保裁剪区域在图像范围内
-        cropX = Math.max(0, Math.min(cropX, img.width - cropWidth));
-        cropY = Math.max(0, Math.min(cropY, img.height - cropHeight));
-        const finalCropWidth = Math.min(cropWidth, img.width - cropX);
-        const finalCropHeight = Math.min(cropHeight, img.height - cropY);
-        
-        canvas.width = finalCropWidth;
-        canvas.height = finalCropHeight;
-        ctx.drawImage(img, cropX, cropY, finalCropWidth, finalCropHeight, 0, 0, finalCropWidth, finalCropHeight);
-    }
-
-    async applyWatermark(canvas, ctx, img) {
-        const action = document.querySelector('input[name="watermarkAction"]:checked').value;
-        
-        if (action === 'add') {
-            await this.addWatermark(canvas, ctx, img);
-        } else {
-            await this.removeWatermark(canvas, ctx, img);
-        }
-    }
-
-    async addWatermark(canvas, ctx, img) {
-        const type = document.getElementById('watermarkType').value;
-        const position = document.getElementById('watermarkPosition').value;
-        const opacity = parseFloat(document.getElementById('watermarkOpacity').value);
-        
-        ctx.globalAlpha = opacity;
-        
-        if (type === 'text') {
-            const text = document.getElementById('watermarkText').value || 'Watermark';
-            const fontSize = parseInt(document.getElementById('fontSize').value);
-            const color = document.getElementById('fontColor').value;
-            
-            ctx.font = `${fontSize}px 'Inter', sans-serif`;
-            ctx.fillStyle = color;
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 1;
-            
-            const textMetrics = ctx.measureText(text);
-            const textWidth = textMetrics.width;
-            const textHeight = fontSize;
-            
-            let x, y;
-            const padding = 20;
-            
-            switch(position) {
-                case 'top-left':
-                    x = padding;
-                    y = padding + textHeight;
-                    break;
-                case 'top-right':
-                    x = canvas.width - textWidth - padding;
-                    y = padding + textHeight;
-                    break;
-                case 'bottom-left':
-                    x = padding;
-                    y = canvas.height - padding;
-                    break;
-                case 'bottom-right':
-                    x = canvas.width - textWidth - padding;
-                    y = canvas.height - padding;
-                    break;
-                case 'center':
-                    x = (canvas.width - textWidth) / 2;
-                    y = (canvas.height + textHeight) / 2;
-                    break;
-            }
-            
-            ctx.strokeText(text, x, y);
-            ctx.fillText(text, x, y);
-        }
-        
-        ctx.globalAlpha = 1;
-    }
-
-    async removeWatermark(canvas, ctx, img) {
-        const removeMethod = document.querySelector('input[name="removeMethod"]:checked').value;
-        
-        if (removeMethod === 'manual') {
-            await this.removeWatermarkManual(canvas, ctx, img);
-        } else {
-            await this.removeWatermarkAuto(canvas, ctx, img);
-        }
-    }
-
-    async removeWatermarkAuto(canvas, ctx, img) {
-        const sensitivity = document.getElementById('watermarkSensitivity').value;
-        const repairStrength = parseInt(document.getElementById('repairStrength').value);
-        
-        // 获取图像数据
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        const threshold = sensitivity === 'high' ? 50 : sensitivity === 'medium' ? 100 : 150;
-        const repairRadius = repairStrength;
-        
-        // 检测潜在的水印区域（通常在角落或边缘）
-        const watermarkRegions = this.detectWatermarkRegions(data, canvas.width, canvas.height, threshold);
-        
-        // 对检测到的区域进行修复
-        for (const region of watermarkRegions) {
-            this.repairRegion(data, canvas.width, canvas.height, region, repairRadius);
-        }
-        
-        // 应用修复后的数据
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    async removeWatermarkManual(canvas, ctx, img) {
-        if (!this.currentImage || this.watermarkMask.length === 0) {
-            // 如果没有手动标记，回退到自动模式
-            return this.removeWatermarkAuto(canvas, ctx, img);
-        }
-        
-        const algorithm = document.getElementById('repairAlgorithm').value;
-        const strength = parseInt(document.getElementById('manualRepairStrength').value);
-        
-        // 获取图像数据
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        // 计算缩放比例（从预览画布到实际处理画布）
-        const scaleX = canvas.width / this.currentImage.displayWidth;
-        const scaleY = canvas.height / this.currentImage.displayHeight;
-        
-        // 应用手动标记的修复
-        for (const maskPoint of this.watermarkMask) {
-            const scaledPoint = {
-                x: maskPoint.x * scaleX,
-                y: maskPoint.y * scaleY,
-                size: maskPoint.size * Math.min(scaleX, scaleY)
-            };
-            
-            this.applyRepairToRegion(imageData, scaledPoint, algorithm, strength);
-        }
-        
-        // 应用修复后的数据
-        ctx.putImageData(imageData, 0, 0);
-    }
-
-    detectWatermarkRegions(data, width, height, threshold) {
-        const regions = [];
-        const regionSize = Math.min(width, height) * 0.2; // 检测区域大小
-        
-        // 检测四个角落
-        const corners = [
-            { x: 0, y: 0 }, // 左上
-            { x: width - regionSize, y: 0 }, // 右上
-            { x: 0, y: height - regionSize }, // 左下
-            { x: width - regionSize, y: height - regionSize } // 右下
-        ];
-        
-        for (const corner of corners) {
-            if (this.hasWatermarkPattern(data, width, height, corner.x, corner.y, regionSize, threshold)) {
-                regions.push({
-                    x: corner.x,
-                    y: corner.y,
-                    width: regionSize,
-                    height: regionSize
-                });
-            }
-        }
-        
-        return regions;
-    }
-
-    hasWatermarkPattern(data, width, height, startX, startY, regionSize, threshold) {
-        let suspiciousPixels = 0;
-        let totalPixels = 0;
-        
-        for (let y = startY; y < startY + regionSize && y < height; y++) {
-            for (let x = startX; x < startX + regionSize && x < width; x++) {
-                const index = (y * width + x) * 4;
-                const r = data[index];
-                const g = data[index + 1];
-                const b = data[index + 2];
-                const a = data[index + 3];
-                
-                // 检测半透明或特殊颜色模式（可能是水印）
-                if (a < 255 || (r > 200 && g > 200 && b > 200) || (r < 50 && g < 50 && b < 50)) {
-                    suspiciousPixels++;
-                }
-                totalPixels++;
-            }
-        }
-        
-        // 如果可疑像素超过阈值比例，认为存在水印
-        return (suspiciousPixels / totalPixels) > (threshold / 1000);
-    }
-
-    repairRegion(data, width, height, region, repairRadius) {
-        // 使用周围像素的平均值来修复水印区域
-        for (let y = region.y; y < region.y + region.height && y < height; y++) {
-            for (let x = region.x; x < region.x + region.width && x < width; x++) {
-                const avgColor = this.getAverageColor(data, width, height, x, y, repairRadius);
-                const index = (y * width + x) * 4;
-                
-                data[index] = avgColor.r;
-                data[index + 1] = avgColor.g;
-                data[index + 2] = avgColor.b;
-                data[index + 3] = 255; // 完全不透明
-            }
-        }
-    }
-
-    getAverageColor(data, width, height, centerX, centerY, radius) {
-        let totalR = 0, totalG = 0, totalB = 0, count = 0;
-        
-        for (let y = centerY - radius; y <= centerY + radius; y++) {
-            for (let x = centerX - radius; x <= centerX + radius; x++) {
-                if (x >= 0 && x < width && y >= 0 && y < height) {
-                    const index = (y * width + x) * 4;
-                    totalR += data[index];
-                    totalG += data[index + 1];
-                    totalB += data[index + 2];
-                    count++;
-                }
-            }
-        }
-        
-        return {
-            r: Math.round(totalR / count),
-            g: Math.round(totalG / count),
-            b: Math.round(totalB / count)
-        };
-    }
-
-    async applyFilter(canvas, ctx, img) {
-        const brightness = parseInt(document.getElementById('brightness').value);
-        const contrast = parseInt(document.getElementById('contrast').value);
-        const saturation = parseInt(document.getElementById('saturation').value);
-        const blur = parseInt(document.getElementById('blur').value);
-        
-        // 应用CSS滤镜效果
-        const filterString = [
-            `brightness(${brightness}%)`,
-            `contrast(${contrast}%)`,
-            `saturate(${saturation}%)`,
-            blur > 0 ? `blur(${blur}px)` : ''
-        ].filter(f => f).join(' ');
-        
-        if (filterString) {
-            ctx.filter = filterString;
-            ctx.drawImage(img, 0, 0);
-            ctx.filter = 'none';
-        }
-    }
-
-    async applyBackground(canvas, ctx, img) {
-        const type = document.getElementById('backgroundType').value;
-        const position = document.getElementById('imagePosition').value;
-        
-        // 保存原始图像
-        const originalCanvas = document.createElement('canvas');
-        const originalCtx = originalCanvas.getContext('2d');
-        originalCanvas.width = canvas.width;
-        originalCanvas.height = canvas.height;
-        originalCtx.drawImage(canvas, 0, 0);
-        
-        // 创建背景
-        let bgColor = '#f4f1ec';
-        
-        if (type === 'solid') {
-            bgColor = document.getElementById('backgroundColor1').value;
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (type === 'gradient') {
-            const startColor = document.getElementById('gradientStart').value;
-            const endColor = document.getElementById('gradientEnd').value;
-            const direction = document.getElementById('gradientDirection').value;
-            
-            let gradient;
-            switch(direction) {
-                case 'horizontal':
-                    gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-                    break;
-                case 'vertical':
-                    gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                    break;
-                case 'diagonal':
-                    gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-                    break;
-                case 'radial':
-                    gradient = ctx.createRadialGradient(
-                        canvas.width/2, canvas.height/2, 0,
-                        canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/2
-                    );
-                    break;
-            }
-            
-            gradient.addColorStop(0, startColor);
-            gradient.addColorStop(1, endColor);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        } else if (type === 'random') {
-            const colors = ['#9BB5A6', '#C4A484', '#D4CFC9', '#B8968C', '#E6D7FF', '#B8F2FF', '#FFD6CC', '#FFF4CC'];
-            bgColor = colors[Math.floor(Math.random() * colors.length)];
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-        
-        // 绘制图像到背景上
-        switch(position) {
-            case 'center':
-                const centerX = (canvas.width - img.width) / 2;
-                const centerY = (canvas.height - img.height) / 2;
-                ctx.drawImage(originalCanvas, centerX, centerY);
-                break;
-            case 'stretch':
-                ctx.drawImage(originalCanvas, 0, 0, canvas.width, canvas.height);
-                break;
-            case 'fit':
-                const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
-                const fitWidth = img.width * scale;
-                const fitHeight = img.height * scale;
-                const fitX = (canvas.width - fitWidth) / 2;
-                const fitY = (canvas.height - fitHeight) / 2;
-                ctx.drawImage(originalCanvas, fitX, fitY, fitWidth, fitHeight);
-                break;
-            case 'cover':
-                const coverScale = Math.max(canvas.width / img.width, canvas.height / img.height);
-                const coverWidth = img.width * coverScale;
-                const coverHeight = img.height * coverScale;
-                const coverX = (canvas.width - coverWidth) / 2;
-                const coverY = (canvas.height - coverHeight) / 2;
-                ctx.drawImage(originalCanvas, coverX, coverY, coverWidth, coverHeight);
-                break;
-            default:
-                ctx.drawImage(originalCanvas, 0, 0);
-        }
-    }
-
-    async processSplice() {
-        if (this.isProcessing || this.files.length < 2) return;
-
-        this.isProcessing = true;
-        this.showProgress();
-        
-        const mode = document.getElementById('spliceMode').value;
-        const spacing = parseInt(document.getElementById('imageSpacing').value) || 10;
-        const bgColor = document.getElementById('spliceBackground').value;
-        const outputWidth = parseInt(document.getElementById('spliceWidth').value) || 1200;
-        const maintainAspect = document.getElementById('maintainAspect').checked;
-        
-        this.updateProgress(20, '正在加载图片...', 0, 1, this.files.length);
-        
-        // 加载所有图片
-        const images = await Promise.all(this.files.map(file => this.loadImage(file)));
-        
-        this.updateProgress(50, '正在拼接图片...', 0, 1, 0);
-        
-        const result = await this.createSplicedImage(images, mode, spacing, bgColor, outputWidth, maintainAspect);
-        
-        this.results.push(result);
-        this.showResults();
-        this.hideProgress();
-        this.isProcessing = false;
-        this.updateUI();
-    }
-
-    async createSplicedImage(images, mode, spacing, bgColor, outputWidth, maintainAspect) {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let totalWidth = 0, totalHeight = 0;
-        let rows = 1, cols = images.length;
-        
-        // 计算布局
-        if (mode === 'grid') {
-            cols = parseInt(document.getElementById('gridColumns').value) || 2;
-            rows = Math.ceil(images.length / cols);
-        } else if (mode === 'vertical') {
-            cols = 1;
-            rows = images.length;
-        }
-        
-        // 计算每个图片的尺寸
-        const cellWidth = mode === 'horizontal' ? 
-            (outputWidth - spacing * (cols - 1)) / cols :
-            outputWidth - spacing * 2;
-        
-        let maxHeight = 0;
-        const processedImages = images.map(img => {
-            let width = cellWidth;
-            let height = maintainAspect ? (img.height * width) / img.width : img.height;
-            
-            if (mode === 'vertical' || mode === 'grid') {
-                maxHeight = Math.max(maxHeight, height);
-            }
-            
-            return { img, width, height };
-        });
-        
-        // 计算画布尺寸
-        if (mode === 'horizontal') {
-            canvas.width = outputWidth;
-            canvas.height = Math.max(...processedImages.map(p => p.height)) + spacing * 2;
-        } else if (mode === 'vertical') {
-            canvas.width = cellWidth + spacing * 2;
-            canvas.height = processedImages.reduce((sum, p) => sum + p.height, 0) + spacing * (rows + 1);
-        } else if (mode === 'grid') {
-            canvas.width = outputWidth;
-            const rowHeight = maxHeight + spacing;
-            canvas.height = rowHeight * rows + spacing;
-        }
-        
-        // 绘制背景
-        ctx.fillStyle = bgColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // 绘制图片
-        let currentX = spacing, currentY = spacing;
-        
-        for (let i = 0; i < processedImages.length; i++) {
-            const { img, width, height } = processedImages[i];
-            
-            if (mode === 'grid' && i > 0 && i % cols === 0) {
-                currentX = spacing;
-                currentY += maxHeight + spacing;
-            }
-            
-            ctx.drawImage(img, currentX, currentY, width, height);
-            
-            if (mode === 'horizontal') {
-                currentX += width + spacing;
-            } else if (mode === 'vertical') {
-                currentY += height + spacing;
-            } else if (mode === 'grid') {
-                currentX += width + spacing;
-            }
-        }
-        
-        const dataURL = canvas.toDataURL('image/png', 0.9);
-        
-        return {
-            originalName: 'spliced_images',
-            processedName: `spliced_${mode}_${Date.now()}.png`,
-            originalUrl: null,
-            processedUrl: dataURL,
-            type: 'splice',
-            size: this.getCanvasSizeBytes(canvas, 'png', 0.9),
-            format: 'png'
-        };
-    }
-
-    async analyzeImage(file, img) {
-        const analyzeColors = document.getElementById('analyzeColors').checked;
-        const analyzeDimensions = document.getElementById('analyzeDimensions').checked;
-        const analyzeFileInfo = document.getElementById('analyzeFileInfo').checked;
-        const analyzeQuality = document.getElementById('analyzeQuality').checked;
-        const colorCount = parseInt(document.getElementById('colorCount').value);
-        
-        const analysis = {
-            originalName: file.name,
-            processedName: `analysis_${file.name.replace(/\.[^/.]+$/, '.json')}`,
-            originalUrl: URL.createObjectURL(file),
-            processedUrl: null,
-            type: 'analyze',
-            size: 0,
-            format: 'json',
-            analysis: {}
-        };
-        
-        if (analyzeDimensions) {
-            analysis.analysis.dimensions = {
-                width: img.width,
-                height: img.height,
-                aspectRatio: (img.width / img.height).toFixed(2),
-                megapixels: ((img.width * img.height) / 1000000).toFixed(2)
-            };
-        }
-        
-        if (analyzeFileInfo) {
-            analysis.analysis.fileInfo = {
-                name: file.name,
-                size: file.size,
-                sizeFormatted: this.formatFileSize(file.size),
-                type: file.type,
-                lastModified: new Date(file.lastModified).toISOString()
-            };
-        }
-        
-        if (analyzeColors) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            
-            analysis.analysis.colors = this.extractDominantColors(ctx, canvas.width, canvas.height, colorCount);
-        }
-        
-        if (analyzeQuality) {
-            analysis.analysis.quality = await this.assessImageQuality(img, file);
-        }
-        
-        // 显示分析结果
-        this.displayAnalysisResults(analysis.analysis);
-        
-        return analysis;
-    }
-
-    extractDominantColors(ctx, width, height, count) {
-        const imageData = ctx.getImageData(0, 0, width, height);
-        const data = imageData.data;
-        const colorMap = new Map();
-        
-        // 采样像素以提高性能
-        const sampleRate = Math.max(1, Math.floor(data.length / (4 * 10000)));
-        
-        for (let i = 0; i < data.length; i += 4 * sampleRate) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-            
-            if (a > 128) { // 忽略透明像素
-                // 量化颜色以减少噪音
-                const quantizedR = Math.floor(r / 32) * 32;
-                const quantizedG = Math.floor(g / 32) * 32;
-                const quantizedB = Math.floor(b / 32) * 32;
-                
-                const colorKey = `${quantizedR},${quantizedG},${quantizedB}`;
-                colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
-            }
-        }
-        
-        // 按频率排序并获取主要颜色
-        const sortedColors = Array.from(colorMap.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, count);
-        
-        return sortedColors.map(([color, frequency]) => {
-            const [r, g, b] = color.split(',').map(Number);
-            const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-            const percentage = ((frequency / colorMap.size) * 100).toFixed(1);
-            
             return {
-                hex,
-                rgb: `rgb(${r}, ${g}, ${b})`,
-                frequency,
-                percentage: percentage + '%'
+                originalName: file.name,
+                newName: newName,
+                blob: resultBlob,
+                url: URL.createObjectURL(resultBlob),
+                operation: operation
             };
-        });
-    }
+        },
+        
+        getOptionsFor(operation) {
+            switch (operation) {
+                case 'convert':
+                    return {
+                        format: document.getElementById('targetFormat').value,
+                        quality: parseInt(this.elements.jpegQuality.value, 10) / 100,
+                        backgroundColor: document.getElementById('backgroundColor').value
+                    };
+                case 'compress':
+                    const targetSizeKB = parseFloat(this.elements.targetSize.value);
+                    const opts = {
+                        maxIteration: 10,
+                        useWebWorker: true,
+                    };
+                    if (!isNaN(targetSizeKB) && targetSizeKB > 0) {
+                        opts.maxSizeMB = targetSizeKB / 1024;
+                    } else {
+                        opts.initialQuality = parseInt(this.elements.customQuality.value, 10) / 100;
+                    }
+                    return opts;
+                case 'resize':
+                    return {
+                        type: 'resize',
+                        mode: this.elements.resizeMode.value,
+                        width: parseInt(this.elements.targetWidth.value, 10) || 0,
+                        height: parseInt(this.elements.targetHeight.value, 10) || 0,
+                        keepAspectRatio: this.elements.keepAspectRatio.checked,
+                    };
+                case 'watermark':
+                case 'watermark_remove':
+                    const action = document.querySelector('input[name="watermarkAction"]:checked').value;
+                    if (action === 'add') {
+                        const watermarkType = document.querySelector('input[name="watermarkType"]:checked').value;
+                        const baseOptions = {
+                            action: 'add',
+                            type: watermarkType,
+                            opacity: parseFloat(this.elements.watermarkOpacity.value),
+                            position: document.getElementById('watermarkPosition').value
+                        };
 
-    async assessImageQuality(img, file) {
-        return {
-            resolution: img.width * img.height,
-            density: (img.width * img.height / (file.size / 1024)).toFixed(2) + ' pixels/KB',
-            compressionRatio: ((file.size / (img.width * img.height * 3)) * 100).toFixed(1) + '%',
-            estimated: '基于文件大小和像素数量的估算'
-        };
-    }
-
-    displayAnalysisResults(analysis) {
-        const resultsDiv = document.getElementById('analyzeResults');
-        const contentDiv = document.getElementById('analyzeResultsContent');
+                        if (watermarkType === 'text') {
+                            return {
+                                ...baseOptions,
+                                text: document.getElementById('watermarkText').value || ' ',
+                                font: `${parseInt(document.getElementById('fontSize').value, 10) || 24}px Inter`,
+                                color: document.getElementById('fontColor').value,
+                            };
+                        } else {
+                            const imageFile = this.elements.watermarkImage.files[0];
+                            if (!imageFile) throw new Error("请选择一个水印图片文件。");
+                            return {
+                                ...baseOptions,
+                                imageFile: imageFile,
+                                scale: parseFloat(this.elements.watermarkImageScale.value)
+                            };
+                        }
+                    } else {
+                        const maskCanvas = this.elements.maskCanvas;
+                        const maskCtx = maskCanvas.getContext('2d');
+                        const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                        return {
+                            action: 'remove',
+                            maskData: maskData,
+                            previewWidth: maskCanvas.width,
+                            previewHeight: maskCanvas.height,
+                        }
+                    }
+                case 'filter':
+                     return {
+                        preset: this.activeFilter,
+                        brightness: this.elements.brightness.value,
+                        contrast: this.elements.contrast.value,
+                        saturation: this.elements.saturation.value,
+                        blur: this.elements.blur.value,
+                    };
+                case 'background':
+                    const backgroundType = document.querySelector('input[name="backgroundType"]:checked').value;
+                    const padding = parseInt(this.elements.paddingWidth.value, 10) || 0;
+                    
+                    if (backgroundType === 'gradient') {
+                        return {
+                            type: 'gradient',
+                            padding: padding,
+                            color1: this.elements.gradientColor1.value,
+                            color2: this.elements.gradientColor2.value,
+                            direction: this.elements.gradientDirection.value
+                        };
+                    } else if (backgroundType === 'solid') {
+                        return {
+                            type: 'solid',
+                            padding: padding,
+                            color: this.elements.bgColor.value,
+                        };
+                    } else { // random
+                        return {
+                            type: 'solid',
+                            padding: padding,
+                            color: 'random',
+                        };
+                    }
+                default: return {};
+            }
+        },
         
-        let html = '';
+        updateProgress(percentage) {
+            const p = Math.round(percentage);
+            this.elements.totalProgress.textContent = `${p}%`;
+            this.elements.progressBar.style.transform = `scaleX(${p / 100})`;
+        },
         
-        if (analysis.dimensions)  {
-            html += `
-                <div class="morandi-card rounded-2xl p-6">
-                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
-                        📐 尺寸信息
-                        <span class="ml-2 text-sm font-normal text-morandi-shadow">Dimensions</span>
-                    </h4>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div class="p-3 bg-gradient-to-br from-macaron-mint to-white rounded-xl">
-                            <div class="text-morandi-shadow">宽度</div>
-                            <div class="font-bold text-morandi-deep">${analysis.dimensions.width}px</div>
-                        </div>
-                        <div class="p-3 bg-gradient-to-br from-macaron-peach to-white rounded-xl">
-                            <div class="text-morandi-shadow">高度</div>
-                            <div class="font-bold text-morandi-deep">${analysis.dimensions.height}px</div>
-                        </div>
-                        <div class="p-3 bg-gradient-to-br from-macaron-lavender to-white rounded-xl">
-                            <div class="text-morandi-shadow">宽高比</div>
-                            <div class="font-bold text-morandi-deep">${analysis.dimensions.aspectRatio}</div>
-                        </div>
-                        <div class="p-3 bg-gradient-to-br from-macaron-lemon to-white rounded-xl">
-                            <div class="text-morandi-shadow">总像素</div>
-                            <div class="font-bold text-morandi-deep">${analysis.dimensions.megapixels}MP</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (analysis.fileInfo) {
-            html += `
-                <div class="morandi-card rounded-2xl p-6">
-                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
-                        📁 文件信息
-                        <span class="ml-2 text-sm font-normal text-morandi-shadow">File Info</span>
-                    </h4>
-                    <div class="text-sm space-y-3">
-                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-morandi-pearl to-white rounded-xl">
-                            <span class="text-morandi-shadow">文件名</span>
-                            <span class="font-medium text-morandi-deep">${analysis.fileInfo.name}</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-morandi-cloud to-white rounded-xl">
-                            <span class="text-morandi-shadow">文件大小</span>
-                            <span class="font-medium text-morandi-deep">${analysis.fileInfo.sizeFormatted}</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-morandi-mist to-white rounded-xl">
-                            <span class="text-morandi-shadow">文件类型</span>
-                            <span class="font-medium text-morandi-deep">${analysis.fileInfo.type}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (analysis.colors) {
-            const colorBlocks = analysis.colors.map(color => 
-                `<div class="flex items-center space-x-3 p-3 bg-gradient-to-r from-white to-morandi-pearl rounded-xl">
-                    <div class="w-8 h-8 rounded-full border-2 border-white shadow-sm" style="background: ${color.hex}"></div>
-                    <div class="flex-1">
-                        <div class="font-medium text-morandi-deep">${color.hex}</div>
-                        <div class="text-xs text-morandi-shadow">${color.percentage}</div>
-                    </div>
-                </div>`
-            ).join('');
+        addResultItem(result) {
+            const resultCard = document.createElement('div');
+            resultCard.className = 'bg-white/80 p-4 rounded-xl shadow-md flex flex-col result-card';
             
-            html += `
-                <div class="morandi-card rounded-2xl p-6">
-                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
-                        🎨 主色调分析
-                        <span class="ml-2 text-sm font-normal text-morandi-shadow">Color Palette</span>
-                    </h4>
-                    <div class="space-y-3">
-                        ${colorBlocks}
-                    </div>
-                </div>
-            `;
-        }
-        
-        if (analysis.quality) {
-            html += `
-                <div class="morandi-card rounded-2xl p-6">
-                    <h4 class="serif-font font-medium mb-4 text-morandi-deep flex items-center">
-                        ⭐ 图像质量评估
-                        <span class="ml-2 text-sm font-normal text-morandi-shadow">Quality Assessment</span>
-                    </h4>
-                    <div class="text-sm space-y-3">
-                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-macaron-mint to-white rounded-xl">
-                            <span class="text-morandi-shadow">像素密度</span>
-                            <span class="font-medium text-morandi-deep">${analysis.quality.density}</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-gradient-to-r from-macaron-peach to-white rounded-xl">
-                            <span class="text-morandi-shadow">压缩比</span>
-                            <span class="font-medium text-morandi-deep">${analysis.quality.compressionRatio}</span>
-                        </div>
-                        <div class="p-3 bg-gradient-to-r from-macaron-lavender to-white rounded-xl">
-                            <div class="text-xs text-morandi-shadow italic">${analysis.quality.estimated}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        contentDiv.innerHTML = html;
-        resultsDiv.classList.remove('hidden');
-    }
-
-    async loadImage(file) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            // Check if file is already a data URL or blob URL
-            if (typeof file === 'string' && (file.startsWith('data:') || file.startsWith('blob:'))) {
-                img.src = file;
-            } else if (file instanceof File) {
-                img.src = URL.createObjectURL(file);
-            } else if (file && file.processedUrl) { // Handle cases where 'file' might be a processed result object
-                img.src = file.processedUrl;
+            const operationMap = {
+                convert: '格式转换',
+                compress: '压缩优化',
+                resize: '尺寸调整',
+                crop: '图像裁剪',
+                watermark: '添加水印',
+                watermark_remove: '消除水印',
+                filter: '艺术滤镜',
+                background: '一键加底',
+                splice: '图像拼接'
+            };
+            const operationLabel = operationMap[result.operation] || '处理结果';
+            
+            if (result.error) {
+                resultCard.innerHTML = `
+                    <p class="font-bold text-red-600 truncate">${result.originalName}</p>
+                    <p class="text-xs text-morandi-shadow">来自: ${operationLabel}</p>
+                    <p class="text-sm text-red-500 mt-2">处理失败: ${result.error}</p>
+                `;
             } else {
-                reject(new Error('Invalid file type for loadImage.'));
+                if (result.url) {
+                    this.resultData[result.url] = result;
+                    this.resultURLs.push(result.url);
+                }
+                resultCard.dataset.id = result.url;
+                const displayName = result.newName || result.originalName;
+                resultCard.innerHTML = `
+                    <div class="w-full h-40 bg-gray-200 rounded-lg mb-3 overflow-hidden">
+                        <img src="${result.url}" class="w-full h-full object-contain" alt="Processed image preview">
+                    </div>
+                    <p class="text-xs text-morandi-deep font-semibold mb-1">${operationLabel}</p>
+                    <p class="text-sm font-medium text-gray-800 truncate" title="${displayName}">${displayName}</p>
+                    <p class="text-xs text-gray-500 mb-3">${this.formatFileSize(result.blob.size)}</p>
+                    <div class="mt-auto text-center card-actions">
+                        <button type="button" data-action="preview">预览</button>
+                        <button type="button" data-action="download">下载</button>
+                        <button type="button" data-action="re-edit">再次编辑</button>
+                    </div>
+                `;
             }
-        });
-    }
+            this.elements.resultsGrid.appendChild(resultCard);
+            this.elements.resultsSection.classList.remove('hidden');
+        },
 
+        handleResultAction(e) {
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
 
+            const resultCard = button.closest('.result-card[data-id]');
+            if (!resultCard) return;
 
-    showProgress() {
-        document.getElementById('progressSection').classList.remove('hidden');
-    }
+            const action = button.dataset.action;
+            const id = resultCard.dataset.id;
 
-    hideProgress() {
-        document.getElementById('progressSection').classList.add('hidden');
-    }
-
-    updateProgress(percent, task, completed, processing, pending) {
-        document.getElementById('progressBar').style.width = percent + '%';
-        document.getElementById('totalProgress').textContent = Math.round(percent) + '%';
-        document.getElementById('currentTask').textContent = task;
-        if (completed !== undefined) document.getElementById('completed').textContent = completed;
-        if (processing !== undefined) document.getElementById('processing').textContent = processing;
-        if (pending !== undefined) document.getElementById('pending').textContent = pending;
-    }
-
-    showResults() {
-        const section = document.getElementById('resultsSection');
-        const grid = document.getElementById('resultsGrid');
-        
-        section.classList.remove('hidden');
-        grid.innerHTML = '';
-        
-        this.results.forEach((result, index) => {
-            const resultItem = this.createResultItem(result, index);
-            grid.appendChild(resultItem);
-        });
-    }
-
-    createResultItem(result, index) {
-        const div = document.createElement('div');
-        div.className = 'result-item morandi-card rounded-2xl p-6 relative overflow-hidden';
-        
-        const typeText = this.getOperationName(result.type);
-        const typeColors = {
-            convert: 'from-van-gogh-blue to-monet-water',
-            compress: 'from-morandi-sage to-morandi-dust',
-            resize: 'from-morandi-clay to-morandi-dust',
-            watermark: 'from-macaron-lavender to-macaron-mint',
-            filter: 'from-macaron-peach to-macaron-rose',
-            background: 'from-monet-lily to-macaron-lavender',
-            splice: 'from-morandi-sage to-van-gogh-blue',
-            analyze: 'from-macaron-mint to-macaron-peach'
-        };
-        const typeColor = typeColors[result.type] || 'from-morandi-shadow to-morandi-deep';
-        
-        div.innerHTML = `
-            <div class="mb-4">
-                <span class="inline-block px-4 py-2 text-xs font-medium text-white bg-gradient-to-r ${typeColor} rounded-full shadow-sm">
-                    ${typeText}
-                </span>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                    <p class="text-xs text-morandi-shadow mb-2 font-medium">处理前</p>
-                    <div class="relative overflow-hidden rounded-xl border-2 border-morandi-cloud">
-                        <img src="${result.originalUrl}" alt="原图" class="w-full h-20 object-cover">
-                    </div>
-                </div>
-                <div>
-                    <p class="text-xs text-morandi-shadow mb-2 font-medium">处理后</p>
-                    <div class="relative overflow-hidden rounded-xl border-2 border-morandi-sage">
-                        <img src="${result.processedUrl}" alt="处理后" class="w-full h-20 object-cover">
-                    </div>
-                </div>
-            </div>
-            ${result.size ? `<p class="text-xs text-morandi-shadow mb-4 font-medium">文件大小: <span class="text-morandi-deep">${this.formatFileSize(result.size)}</span></p>` : ''}
-            ${result.error ? `<p class="text-xs text-red-500 mb-4 p-2 bg-red-50 rounded-lg">⚠️ ${result.error}</p>` : ''}
-            <div class="flex space-x-3">
-                <button onclick="app.downloadSingle(${index})" 
-                        class="flex-1 btn-primary py-3 rounded-xl text-sm font-medium transition-all shadow-sm">
-                    <span class="relative z-10">下载</span>
-                </button>
-                <button onclick="app.previewImage('${result.processedUrl}', '${result.processedName}')" 
-                        class="flex-1 btn-secondary py-3 rounded-xl text-sm font-medium transition-all shadow-sm">
-                    预览
-                </button>
-            </div>
-        `;
-        
-        return div;
-    }
-
-    downloadSingle(index) {
-        const result = this.results[index];
-        this.downloadImage(result.processedUrl, result.processedName);
-    }
-
-    downloadImage(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-
-    async downloadAll() {
-        if (this.results.length === 0) return;
-
-        const zip = new JSZip();
-        
-        for (const result of this.results) {
-            // Fetch the blob directly if it's a blob URL, otherwise convert data URL to blob
-            const blob = await (result.processedUrl.startsWith('blob:') ? fetch(result.processedUrl).then(r => r.blob()) : this.dataURLtoBlob(result.processedUrl));
-            zip.file(result.processedName, blob);
-        }
-
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const zipUrl = URL.createObjectURL(zipBlob);
-        
-        const currentTime = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
-        this.downloadImage(zipUrl, `loki_atelier_${currentTime}.zip`);
-    }
-
-    // Helper to convert data URL to Blob for JSZip
-    dataURLtoBlob(dataurl) {
-        const arr = dataurl.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-        }
-        return new Blob([u8arr], { type: mime });
-    }
-
-    previewImage(url, name) {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm';
-        modal.innerHTML = `
-            <div class="max-w-4xl max-h-full p-6">
-                <div class="morandi-card rounded-3xl overflow-hidden shadow-2xl">
-                    <div class="p-6 border-b border-morandi-cloud">
-                        <div class="flex justify-between items-center">
-                            <h3 class="serif-font text-xl font-medium text-morandi-deep">${name}</h3>
-                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.parentElement.remove()" 
-                                    class="text-morandi-shadow hover:text-morandi-deep transition-colors p-2">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <img src="${url}" alt="${name}" class="max-w-full max-h-96 mx-auto rounded-xl shadow-lg">
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-        
-        document.body.appendChild(modal);
-    }
-
-    previewBatch() {
-        if (this.files.length === 0) return;
-        
-        // 创建艺术化的预览弹窗
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm';
-        modal.innerHTML = `
-            <div class="max-w-2xl w-full mx-4">
-                <div class="morandi-card rounded-3xl overflow-hidden shadow-2xl">
-                    <div class="section-header">
-                        <h3 class="serif-font text-2xl font-semibold text-morandi-deep text-center">
-                            🎨 批量处理预览
-                            <span class="block text-sm font-normal text-morandi-shadow mt-2">Batch Processing Preview</span>
-                        </h3>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4 text-morandi-deep">
-                            <div class="p-4 bg-gradient-to-r from-macaron-mint to-macaron-lavender rounded-xl">
-                                <h4 class="font-medium mb-2">📋 处理流程</h4>
-                                <div class="text-sm space-y-1">
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-6 h-6 bg-van-gogh-blue text-white rounded-full flex items-center justify-center text-xs">1</span>
-                                        <span>格式转换</span>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-6 h-6 bg-morandi-sage text-white rounded-full flex items-center justify-center text-xs">2</span>
-                                        <span>压缩优化</span>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-6 h-6 bg-morandi-dust text-white rounded-full flex items-center justify-center text-xs">3</span>
-                                        <span>尺寸调整</span>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-6 h-6 bg-morandi-clay text-white rounded-full flex items-center justify-center text-xs">4</span>
-                                        <span>水印处理</span>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="w-6 h-6 bg-monet-lily text-white rounded-full flex items-center justify-center text-xs">5</span>
-                                        <span>艺术滤镜</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="p-4 bg-gradient-to-r from-macaron-peach to-macaron-rose rounded-xl">
-                                <h4 class="font-medium mb-2">📊 处理信息</h4>
-                                <div class="text-sm grid grid-cols-2 gap-3">
-                                    <div>文件数量: <span class="font-bold">${this.files.length}</span></div>
-                                    <div>预计时间: <span class="font-bold">${Math.ceil(this.files.length * 2.5)}秒</span></div>
-                                    <div>处理步骤: <span class="font-bold">5个</span></div>
-                                    <div>输出格式: <span class="font-bold">多种</span></div>
-                                </div>
-                            </div>
-                            <div class="p-4 bg-gradient-to-r from-macaron-lemon to-white rounded-xl">
-                                <h4 class="font-medium mb-2">💡 温馨提示</h4>
-                                <div class="text-sm text-morandi-shadow">
-                                    批量处理将按顺序应用所有已配置的处理步骤。处理时间取决于文件大小和数量，请耐心等待。
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex space-x-4 mt-6">
-                            <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" 
-                                    class="flex-1 btn-secondary py-3 rounded-xl font-medium">
-                                取消
-                            </button>
-                            <button onclick="app.batchProcessAll(); this.parentElement.parentElement.parentElement.parentElement.remove();" 
-                                    class="flex-1 btn-primary py-3 rounded-xl font-medium">
-                                <span class="relative z-10">开始处理</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-        
-        document.body.appendChild(modal);
-    }
-
-    resetAllSettings() {
-        // 重置所有表单
-        document.querySelectorAll('select, input[type="range"], input[type="number"], input[type="text"], textarea').forEach(input => {
-            if (input.defaultValue !== undefined) {
-                input.value = input.defaultValue;
+            switch (action) {
+                case 'preview':
+                    this.previewImage(id);
+                    break;
+                case 'download':
+                    this.downloadResult(id);
+                    break;
+                case 're-edit':
+                    this.reEditImage(id);
+                    break;
             }
-        });
-        
-        // 触发范围输入更新
-        document.querySelectorAll('input[type="range"]').forEach(input => {
-            input.dispatchEvent(new Event('input'));
-        });
-        
-        // 显示艺术化的成功提示
-        const toast = document.createElement('div');
-        toast.className = 'fixed top-4 right-4 z-50 morandi-card rounded-2xl p-4 shadow-2xl transform translate-x-full transition-transform duration-500';
-        toast.innerHTML = `
-            <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-gradient-to-br from-morandi-sage to-van-gogh-blue rounded-full flex items-center justify-center">
-                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
-                <div>
-                    <div class="font-medium text-morandi-deep">设置已重置</div>
-                    <div class="text-xs text-morandi-shadow">所有参数已恢复默认值</div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        // 动画显示
-        setTimeout(() => {
-            toast.style.transform = 'translateX(0)';
-        }, 100);
-        
-        // 自动消失
-        setTimeout(() => {
-            toast.style.transform = 'translateX(full)';
-            setTimeout(() => toast.remove(), 500);
-        }, 3000);
-    }
+        },
 
-    clearResults() {
-        this.results = [];
-        document.getElementById('resultsSection').classList.add('hidden');
-    }
+        previewImage(id) {
+            window.open(id, '_blank');
+        },
 
-    sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-}
+        downloadResult(id) {
+            const result = this.resultData[id];
+            if (!result) return;
 
-// 修正后的实例化逻辑
-// 确保只实例化一次，并在 DOMContentLoaded 后初始化
-let app; // Declare app globally but don't instantiate immediately
+            const link = document.createElement('a');
+            link.href = result.url;
+            link.download = result.newName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },
 
-document.addEventListener('DOMContentLoaded', function() {
-    app = new ArtisticImageProcessor(); // Instantiate when DOM is ready
-    app.init(); // Call init method to set up event listeners and animations
-    
-    // Set global reference for HTML onclick attributes
-    window.app = app;
-    
-    console.log('🎨 Loki\'s Digital Atelier 已启动！');
+        revokeResultURLs() {
+            this.resultURLs.forEach(url => URL.revokeObjectURL(url));
+            this.resultURLs = [];
+        },
+
+        clearResults() {
+            this.revokeResultURLs();
+            this.resultData = {};
+            this.elements.resultsGrid.innerHTML = '';
+            this.elements.resultsSection.classList.add('hidden');
+            this.updateProgress(0);
+            this.elements.progressSection.classList.add('hidden');
+        },
+
+        async reEditImage(id) {
+            const result = this.resultData[id];
+            if (!result) return;
+        
+            try {
+                const { blob, newName } = result;
+                const file = new File([blob], `edited_${newName}`, { type: blob.type });
+                file.id = `file-${Date.now()}-${Math.random()}`;
+        
+                this.files = [file];
+                this.elements.fileInput.value = '';
+        
+                this.updateUI();
+        
+                this.elements.uploadArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+            } catch (err) {
+                console.error('Error re-editing image:', err);
+                alert('无法重新编辑图片，请重试。');
+            }
+        },
+
+        async downloadAllResults() {
+            const zip = new JSZip();
+            const resultsToDownload = Object.values(this.resultData).filter(r => !r.error);
+
+            if (resultsToDownload.length === 0) {
+                alert('没有可下载的结果。');
+                return;
+            }
+
+            for (const result of resultsToDownload) {
+                 zip.file(result.newName, result.blob);
+            }
+            
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = 'loki_processed_images.zip';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+            });
+        },
+
+        destroyCropper() {
+            if (this.cropper) {
+                this.cropper.destroy();
+                this.cropper = null;
+            }
+            this.elements.cropImage.classList.add('hidden');
+            this.elements.cropImage.src = '';
+            this.elements.cropPlaceholder.style.display = 'flex';
+            if (this.elements.confirmCropBtn) this.elements.confirmCropBtn.disabled = true;
+            if (this.elements.cropDimensionsDisplay) this.elements.cropDimensionsDisplay.textContent = '0 x 0';
+            if (this.elements.cropWidthInput) this.elements.cropWidthInput.value = '';
+            if (this.elements.cropHeightInput) this.elements.cropHeightInput.value = '';
+        },
+
+        initCropper() {
+            if (document.querySelector('input[name="resizeType"]:checked').value !== 'crop') {
+                this.destroyCropper();
+                return;
+            }
+            
+            this.destroyCropper();
+            
+            const file = this.files[0];
+            if (file) {
+                this.elements.cropPlaceholder.style.display = 'none';
+                this.elements.cropImage.classList.remove('hidden');
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.elements.cropImage.src = e.target.result;
+                    this.cropper = new Cropper(this.elements.cropImage, {
+                        viewMode: 1,
+                        autoCropArea: 0.8,
+                        background: false,
+                        ready: () => {
+                            this.elements.confirmCropBtn.disabled = false;
+                            const cropData = this.cropper.getData(true);
+                            this.elements.cropDimensionsDisplay.textContent = `${cropData.width} x ${cropData.height}`;
+                            this.elements.cropWidthInput.value = cropData.width;
+                            this.elements.cropHeightInput.value = cropData.height;
+                        },
+                        crop: (event) => {
+                            const { width, height } = event.detail;
+                            const roundedWidth = Math.round(width);
+                            const roundedHeight = Math.round(height);
+                            this.elements.cropDimensionsDisplay.textContent = `${roundedWidth} x ${roundedHeight}`;
+                            if (document.activeElement !== this.elements.cropWidthInput) {
+                                this.elements.cropWidthInput.value = roundedWidth;
+                            }
+                            if (document.activeElement !== this.elements.cropHeightInput) {
+                                this.elements.cropHeightInput.value = roundedHeight;
+                            }
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            } else {
+                this.destroyCropper();
+            }
+        },
+        
+        setCropperDataFromInput() {
+            if (!this.cropper) return;
+
+            const data = {
+                width: parseInt(this.elements.cropWidthInput.value, 10),
+                height: parseInt(this.elements.cropHeightInput.value, 10),
+            };
+
+            const validData = Object.entries(data).reduce((acc, [key, value]) => {
+                if (!isNaN(value) && value > 0) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {});
+            
+            if (Object.keys(validData).length > 0) {
+                this.cropper.setData(validData);
+            }
+        },
+
+        async applyCrop() {
+            if (!this.cropper || this.files.length === 0 || this.isProcessing) return;
+
+            this.isProcessing = true;
+            this.updateButtonStates();
+
+            const scope = document.querySelector('input[name="cropScope"]:checked').value;
+            const cropData = this.cropper.getData(true);
+
+            this.elements.progressSection.classList.remove('hidden');
+            this.elements.resultsSection.classList.remove('hidden');
+            this.updateProgress(0);
+
+            try {
+                if (scope === 'single') {
+                    const originalFile = this.files[0];
+                    this.elements.currentTask.textContent = `正在裁剪 ${originalFile.name}...`;
+
+                    const canvas = this.cropper.getCroppedCanvas({
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high',
+                    });
+
+                    if (!canvas) {
+                        throw new Error('无法生成裁剪后的图像。');
+                    }
+                    
+                    this.updateProgress(50);
+
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, originalFile.type, 0.95));
+                    
+                    if (!blob) {
+                        throw new Error('裁剪失败，无法生成 Blob。');
+                    }
+                    
+                    const extension = blob.type.split('/')[1] || 'png';
+                    const originalFilenameBase = originalFile.name.split('.').slice(0, -1).join('.') || originalFile.name;
+                    const newName = `cropped_${originalFilenameBase}.${extension}`;
+
+                    this.addResultItem({
+                        originalName: originalFile.name,
+                        newName: newName,
+                        blob: blob,
+                        url: URL.createObjectURL(blob),
+                        operation: 'crop'
+                    });
+
+                    this.elements.currentTask.textContent = '裁剪完成！';
+
+                } else { // scope === 'all'
+                    this.elements.currentTask.textContent = `准备批量裁剪 ${this.files.length} 个文件...`;
+                    let processedCount = 0;
+                    const totalFiles = this.files.length;
+                    const cropPromises = this.files.map(file => 
+                        (async () => {
+                            try {
+                                let imageBitmap = await createImageBitmap(file);
+                                const { canvas, ctx } = this.imageOps.createCanvas(cropData.width, cropData.height);
+                                ctx.drawImage(imageBitmap, cropData.x, cropData.y, cropData.width, cropData.height, 0, 0, cropData.width, cropData.height);
+                                imageBitmap.close();
+                                
+                                const blob = await new Promise(resolve => canvas.toBlob(resolve, file.type, 0.95));
+
+                                if (!blob) throw new Error('裁剪失败');
+
+                                const extension = blob.type.split('/')[1] || 'png';
+                                const originalFilenameBase = file.name.split('.').slice(0, -1).join('.') || file.name;
+                                const newName = `cropped_${originalFilenameBase}.${extension}`;
+                                this.addResultItem({
+                                    originalName: file.name,
+                                    newName: newName,
+                                    blob: blob,
+                                    url: URL.createObjectURL(blob),
+                                    operation: 'crop'
+                                });
+
+                            } catch (error) {
+                                console.error(`处理文件 ${file.name} 失败:`, error);
+                                this.addResultItem({ originalName: file.name, error: error.message, operation: 'crop' });
+                            } finally {
+                                processedCount++;
+                                const progress = (processedCount / totalFiles) * 100;
+                                this.updateProgress(progress);
+                                this.elements.currentTask.textContent = `已处理 ${processedCount} / ${totalFiles} 个文件...`;
+                            }
+                        })()
+                    );
+                    
+                    await Promise.all(cropPromises);
+
+                    this.elements.currentTask.textContent = '所有任务处理完成！';
+                }
+            } catch(error) {
+                console.error('裁剪操作失败:', error);
+                const fileForError = scope === 'single' && this.files.length > 0 ? this.files[0] : { name: '批量裁剪任务' };
+                this.addResultItem({ originalName: fileForError.name, error: error.message, operation: 'crop' });
+                this.elements.currentTask.textContent = `处理失败: ${error.message}`;
+            } finally {
+                this.updateProgress(100);
+                this.isProcessing = false;
+                this.updateButtonStates();
+                setTimeout(() => {
+                    this.elements.progressSection.classList.add('hidden');
+                    this.updateProgress(0);
+                }, 2000);
+            }
+        },
+        
+        async applySingleFilter() {
+            if (this.files.length === 0) {
+                alert('请先选择一个文件。');
+                return;
+            }
+            if (this.isProcessing) {
+                alert('正在处理中，请稍候...');
+                return;
+            }
+
+            this.isProcessing = true;
+            this.updateButtonStates();
+
+            const originalFile = this.files[0];
+            this.elements.progressSection.classList.remove('hidden');
+            this.updateProgress(0);
+            this.elements.currentTask.textContent = `正在为 ${originalFile.name} 应用滤镜...`;
+
+            try {
+                const options = this.getOptionsFor('filter');
+                const imageBitmap = await createImageBitmap(originalFile);
+                this.updateProgress(50);
+
+                const resultBlob = await this.imageOps.filter(imageBitmap, options);
+                imageBitmap.close();
+
+                if (!resultBlob) {
+                    throw new Error('应用滤镜失败，无法生成图像。');
+                }
+
+                const extension = 'png';
+                const originalFilenameBase = originalFile.name.split('.').slice(0, -1).join('.') || originalFile.name;
+                const newName = `filtered_${originalFilenameBase}.${extension}`;
+                
+                const result = {
+                    originalName: originalFile.name,
+                    newName: newName,
+                    blob: resultBlob,
+                    url: URL.createObjectURL(resultBlob),
+                    operation: 'filter'
+                };
+                
+                this.addResultItem(result);
+                
+                this.updateProgress(100);
+                this.elements.currentTask.textContent = '滤镜应用完成！';
+
+            } catch (error) {
+                console.error('应用滤镜失败:', error);
+                this.addResultItem({ originalName: originalFile.name, error: error.message, operation: 'filter' });
+                this.updateProgress(100);
+                this.elements.currentTask.textContent = `应用滤镜失败: ${error.message}`;
+            } finally {
+                this.isProcessing = false;
+                this.updateButtonStates();
+                setTimeout(() => {
+                    this.elements.progressSection.classList.add('hidden');
+                    this.updateProgress(0);
+                }, 2000);
+            }
+        },
+
+        async applyWatermarkRemoval() {
+            if (this.isProcessing) {
+                alert('正在处理中，请稍候...');
+                return;
+            }
+            if (!this.isInpaintingActive() || this.files.length === 0) {
+                alert('请先选择一个文件并切换到消除水印模式。');
+                return;
+            }
+        
+            const options = this.getOptionsFor('watermark');
+            if (options.action !== 'remove') return;
+        
+            const maskPixels = options.maskData.data;
+            let isMaskDrawn = false;
+            for (let i = 3; i < maskPixels.length; i += 4) {
+                if (maskPixels[i] > 0) {
+                    isMaskDrawn = true;
+                    break;
+                }
+            }
+        
+            if (!isMaskDrawn) {
+                alert('请先在图片上绘制需要消除的区域。');
+                return;
+            }
+
+            const scope = document.querySelector('input[name="watermarkRemoveScope"]:checked').value;
+            const filesToProcess = (scope === 'single' && this.files.length > 0) ? [this.files[0]] : this.files;
+
+            this.processFiles('watermark_remove', filesToProcess).then(() => {
+                this.clearMask();
+            });
+        },
+
+        isInpaintingActive() {
+            return document.querySelector('input[name="watermarkAction"]:checked').value === 'remove';
+        },
+
+        getCanvasCoordinates(e) {
+            const rect = this.elements.maskCanvas.getBoundingClientRect();
+            let x, y;
+            if (e.touches && e.touches.length > 0) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            return { x, y };
+        },
+
+        bindInpaintingEvents() {
+            const { maskCanvas } = this.elements;
+
+            const handlePaintStart = (e) => {
+                if (!this.isInpaintingActive()) return;
+                e.preventDefault();
+                this.inpaintingState.painting = true;
+                const { x, y } = this.getCanvasCoordinates(e);
+                this.inpaintingState.lastX = x;
+                this.inpaintingState.lastY = y;
+            };
+            
+            const handlePaintMove = (e) => {
+                if (!this.isInpaintingActive() || !this.inpaintingState.painting) return;
+                e.preventDefault();
+                const { x, y } = this.getCanvasCoordinates(e);
+                this.drawOnMask(this.inpaintingState.lastX, this.inpaintingState.lastY, x, y);
+                this.inpaintingState.lastX = x;
+                this.inpaintingState.lastY = y;
+            };
+
+            const handlePaintEnd = () => {
+                this.inpaintingState.painting = false;
+            };
+
+            maskCanvas.addEventListener('mousedown', handlePaintStart);
+            maskCanvas.addEventListener('mousemove', handlePaintMove);
+            maskCanvas.addEventListener('mouseup', handlePaintEnd);
+            maskCanvas.addEventListener('mouseout', handlePaintEnd);
+            
+            maskCanvas.addEventListener('touchstart', handlePaintStart, { passive: false });
+            maskCanvas.addEventListener('touchmove', handlePaintMove, { passive: false });
+            maskCanvas.addEventListener('touchend', handlePaintEnd);
+        },
+
+        drawOnMask(x1, y1, x2, y2) {
+            const ctx = this.elements.maskCanvas.getContext('2d');
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 87, 34, 0.7)';
+            ctx.lineWidth = this.inpaintingState.brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.closePath();
+        },
+
+        clearMask() {
+            const { maskCanvas } = this.elements;
+            const ctx = maskCanvas.getContext('2d');
+            ctx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        },
+        
+        initInpainting() {
+            if (!this.isInpaintingActive() || this.files.length === 0) {
+                this.destroyInpainting();
+                return;
+            }
+
+            const file = this.files[0];
+            if (!file) { 
+                this.destroyInpainting();
+                return;
+            }
+
+            this.elements.inpaintingPlaceholder.style.display = 'none';
+            const { inpaintingCanvas, maskCanvas, inpaintingContainer } = this.elements;
+            
+            inpaintingCanvas.classList.remove('hidden');
+            maskCanvas.classList.remove('hidden');
+            this.elements.applyRemovalBtn.disabled = false;
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    inpaintingContainer.style.height = `400px`;
+
+                    const containerWidth = inpaintingContainer.clientWidth;
+                    const containerHeight = 400;
+                    const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+                    const containerAspectRatio = containerWidth / containerHeight;
+
+                    let canvasWidth, canvasHeight;
+
+                    if (imgAspectRatio > containerAspectRatio) {
+                        canvasWidth = containerWidth;
+                        canvasHeight = containerWidth / imgAspectRatio;
+                    } else {
+                        canvasHeight = containerHeight;
+                        canvasWidth = containerHeight * imgAspectRatio;
+                    }
+
+                    canvasWidth = Math.round(canvasWidth);
+                    canvasHeight = Math.round(canvasHeight);
+
+                    const topOffset = (containerHeight - canvasHeight) / 2;
+                    const leftOffset = (containerWidth - canvasWidth) / 2;
+
+                    [inpaintingCanvas, maskCanvas].forEach(canvas => {
+                        canvas.width = canvasWidth;
+                        canvas.height = canvasHeight;
+                        canvas.style.position = 'absolute';
+                        canvas.style.top = `${topOffset}px`;
+                        canvas.style.left = `${leftOffset}px`;
+                    });
+                    maskCanvas.style.zIndex = '10';
+
+                    const ctx = inpaintingCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                    this.clearMask();
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        },
+
+        destroyInpainting() {
+            this.elements.inpaintingPlaceholder.style.display = 'flex';
+            this.elements.inpaintingCanvas.classList.add('hidden');
+            this.elements.maskCanvas.classList.add('hidden');
+            this.elements.inpaintingContainer.style.height = '';
+            this.elements.applyRemovalBtn.disabled = true;
+        },
+
+        setActiveFilter(filterName) {
+            this.activeFilter = filterName;
+            this.elements.filterPresetBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filterName);
+            });
+            this.elements.filterSliders.forEach(slider => slider.disabled = true);
+            this.updateFilterPreview();
+        },
+
+        clearActiveFilter() {
+            this.activeFilter = null;
+            this.elements.filterPresetBtns.forEach(btn => btn.classList.remove('active'));
+            this.elements.filterSliders.forEach(slider => slider.disabled = false);
+        },
+
+        async updateFilterPreview() {
+            const canvas = this.elements.filterPreviewCanvas;
+            const placeholder = this.elements.filterPreviewPlaceholder;
+            const container = this.elements.filterPreviewContainer;
+            const file = this.files[0];
+
+            if (!file) {
+                canvas.classList.add('hidden');
+                placeholder.style.display = 'flex';
+                return;
+            }
+
+            canvas.classList.remove('hidden');
+            placeholder.style.display = 'none';
+            
+            let bitmap = null;
+            try {
+                bitmap = await createImageBitmap(file);
+                const options = this.getOptionsFor('filter');
+                
+                const containerWidth = container.clientWidth;
+                const maxHeight = 400;
+                const imgWidth = bitmap.width;
+                const imgHeight = bitmap.height;
+
+                let targetWidth = imgWidth;
+                let targetHeight = imgHeight;
+
+                if (imgWidth > containerWidth || imgHeight > maxHeight) {
+                    const widthRatio = containerWidth / imgWidth;
+                    const heightRatio = maxHeight / imgHeight;
+                    const ratio = Math.min(widthRatio, heightRatio);
+                    targetWidth = imgWidth * ratio;
+                    targetHeight = imgHeight * ratio;
+                }
+
+                canvas.width = Math.round(targetWidth);
+                canvas.height = Math.round(targetHeight);
+                
+                const ctx = canvas.getContext('2d');
+                this.imageOps._applyFilterToContext(ctx, canvas, bitmap, options);
+
+            } catch (error) {
+                console.error("Error updating filter preview:", error);
+            } finally {
+                if (bitmap) {
+                    bitmap.close();
+                }
+            }
+        },
+        
+        imageOps: {
+            createCanvas(width, height) {
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                return { canvas, ctx: canvas.getContext('2d') };
+            },
+            
+            async convert(bitmap, options) {
+                const { canvas, ctx } = this.createCanvas(bitmap.width, bitmap.height);
+                if (options.format === 'jpeg' && options.backgroundColor !== 'transparent') {
+                    ctx.fillStyle = options.backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+                ctx.drawImage(bitmap, 0, 0);
+                const type = `image/${options.format}`;
+                const quality = type === 'image/jpeg' ? options.quality : undefined;
+                return await new Promise(resolve => canvas.toBlob(resolve, type, quality));
+            },
+
+            async compress(file, options) {
+                if (!window.imageCompression) {
+                    throw new Error('压缩库未加载。');
+                }
+                return await window.imageCompression(file, options);
+            },
+
+            async resize(bitmap, options) {
+                let targetWidth = options.width, targetHeight = options.height;
+                
+                if(options.keepAspectRatio) {
+                    const ratio = bitmap.width / bitmap.height;
+                    if (options.mode === 'fixed') {
+                        if (targetWidth && targetHeight) {
+                             if (targetWidth / targetHeight > ratio) {
+                                targetWidth = targetHeight * ratio;
+                            } else {
+                                targetHeight = targetWidth / ratio;
+                            }
+                        } else if(targetWidth) {
+                            targetHeight = targetWidth / ratio;
+                        } else if(targetHeight) {
+                            targetWidth = targetHeight * ratio;
+                        }
+                    } else if (options.mode === 'width') {
+                        targetHeight = targetWidth / ratio;
+                    } else if (options.mode === 'height') {
+                        targetWidth = targetHeight * ratio;
+                    } else if (options.mode === 'percentage') {
+                        const percent = options.width / 100;
+                        targetWidth = bitmap.width * percent;
+                        targetHeight = bitmap.height * percent;
+                    }
+                }
+
+                targetWidth = Math.round(targetWidth);
+                targetHeight = Math.round(targetHeight);
+
+                if (!isFinite(targetWidth) || !isFinite(targetHeight) || targetWidth <= 0 || targetHeight <= 0) {
+                    console.warn("Invalid resize dimensions, returning original image", targetWidth, targetHeight);
+                    const { canvas, ctx } = this.createCanvas(bitmap.width, bitmap.height);
+                    ctx.drawImage(bitmap, 0, 0);
+                    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                }
+
+                const { canvas, ctx } = this.createCanvas(targetWidth, targetHeight);
+                ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+            
+            async watermark(bitmap, options) {
+                const { canvas, ctx } = this.createCanvas(bitmap.width, bitmap.height);
+                ctx.drawImage(bitmap, 0, 0);
+                
+                ctx.globalAlpha = options.opacity;
+                const margin = 20;
+
+                if (options.type === 'text') {
+                    ctx.font = options.font;
+                    ctx.fillStyle = options.color;
+                    let x, y;
+
+                    switch(options.position) {
+                        case 'top-left': x = margin; y = margin; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; break;
+                        case 'top-right': x = canvas.width - margin; y = margin; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; break;
+                        case 'bottom-left': x = margin; y = canvas.height - margin; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; break;
+                        case 'center': x = canvas.width / 2; y = canvas.height / 2; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; break;
+                        default: // bottom-right
+                            x = canvas.width - margin;
+                            y = canvas.height - margin;
+                            ctx.textAlign = 'right'; 
+                            ctx.textBaseline = 'bottom';
+                    }
+                    ctx.fillText(options.text, x, y);
+                } else if (options.type === 'image') {
+                    let watermarkBitmap = null;
+                    try {
+                        watermarkBitmap = await createImageBitmap(options.imageFile);
+                        const w = watermarkBitmap.width;
+                        const h = watermarkBitmap.height;
+                        const baseSize = Math.min(bitmap.width, bitmap.height);
+                        const targetWidth = baseSize * options.scale;
+                        const scaleFactor = targetWidth / w;
+                        const targetHeight = h * scaleFactor;
+                        let x, y;
+                        switch(options.position) {
+                            case 'top-left': x = margin; y = margin; break;
+                            case 'top-right': x = canvas.width - targetWidth - margin; y = margin; break;
+                            case 'bottom-left': x = margin; y = canvas.height - targetHeight - margin; break;
+                            case 'center': x = (canvas.width - targetWidth) / 2; y = (canvas.height - targetHeight) / 2; break;
+                            default: // bottom-right
+                                x = canvas.width - targetWidth - margin;
+                                y = canvas.height - targetHeight - margin;
+                        }
+                        ctx.drawImage(watermarkBitmap, x, y, targetWidth, targetHeight);
+                    } finally {
+                        if (watermarkBitmap) watermarkBitmap.close();
+                    }
+                }
+
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            async removeWatermark(bitmap, options) {
+                const { canvas, ctx } = this.createCanvas(bitmap.width, bitmap.height);
+                ctx.drawImage(bitmap, 0, 0);
+            
+                const resultData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const { maskData, previewWidth, previewHeight } = options;
+                const scaleX = canvas.width / previewWidth;
+                const scaleY = canvas.height / previewHeight;
+            
+                const mask = new Uint8Array(canvas.width * canvas.height);
+                let pixelsToFillCount = 0;
+            
+                for (let y = 0; y < canvas.height; y++) {
+                    for (let x = 0; x < canvas.width; x++) {
+                        const maskX = Math.floor(x / scaleX);
+                        const maskY = Math.floor(y / scaleY);
+                        const clampedMaskX = Math.max(0, Math.min(maskData.width - 1, maskX));
+                        const clampedMaskY = Math.max(0, Math.min(maskData.height - 1, maskY));
+                        const maskIndex = (clampedMaskY * maskData.width + clampedMaskX) * 4;
+            
+                        if (maskData.data[maskIndex + 3] > 0) {
+                            const idx = y * canvas.width + x;
+                            mask[idx] = 1;
+                            pixelsToFillCount++;
+                        }
+                    }
+                }
+            
+                if (pixelsToFillCount === 0) {
+                    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                }
+            
+                let filledInLastPass = -1;
+                while(filledInLastPass !== 0) {
+                    filledInLastPass = 0;
+                    const pixelsToProcessThisPass = [];
+                    
+                    for (let y = 0; y < canvas.height; y++) {
+                        for (let x = 0; x < canvas.width; x++) {
+                            const idx = y * canvas.width + x;
+                            if (mask[idx] !== 1) continue;
+            
+                            let isBoundary = false;
+                            for (let j = -1; j <= 1; j++) {
+                                for (let i = -1; i <= 1; i++) {
+                                    if (i === 0 && j === 0) continue;
+                                    const nX = x + i;
+                                    const nY = y + j;
+                                    if (nX >= 0 && nX < canvas.width && nY >= 0 && nY < canvas.height) {
+                                        if (mask[nY * canvas.width + nX] === 0) {
+                                            isBoundary = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (isBoundary) break;
+                            }
+                            if (isBoundary) {
+                                pixelsToProcessThisPass.push({ x, y });
+                            }
+                        }
+                    }
+            
+                    if (pixelsToProcessThisPass.length === 0) break;
+            
+                    const passChanges = {};
+                    for (const p of pixelsToProcessThisPass) {
+                        let r = 0, g = 0, b = 0, count = 0;
+                        for (let j = -1; j <= 1; j++) {
+                            for (let i = -1; i <= 1; i++) {
+                                if (i === 0 && j === 0) continue;
+                                const nX = p.x + i;
+                                const nY = p.y + j;
+                                if (nX >= 0 && nX < canvas.width && nY >= 0 && nY < canvas.height) {
+                                    const nIdx = nY * canvas.width + nX;
+                                    if (mask[nIdx] === 0) {
+                                        const sourceIdx = nIdx * 4;
+                                        r += resultData.data[sourceIdx];
+                                        g += resultData.data[sourceIdx + 1];
+                                        b += resultData.data[sourceIdx + 2];
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+            
+                        if (count > 0) {
+                            const pIdx = p.y * canvas.width + p.x;
+                            passChanges[pIdx] = { r: r / count, g: g / count, b: b / count };
+                        }
+                    }
+            
+                    for (const pIdx in passChanges) {
+                        const colors = passChanges[pIdx];
+                        const dataIdx = parseInt(pIdx) * 4;
+                        resultData.data[dataIdx] = colors.r;
+                        resultData.data[dataIdx + 1] = colors.g;
+                        resultData.data[dataIdx + 2] = colors.b;
+                        mask[pIdx] = 0;
+                        filledInLastPass++;
+                    }
+                }
+            
+                ctx.putImageData(resultData, 0, 0);
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            async filter(bitmap, options) {
+                const { canvas, ctx } = this.createCanvas(bitmap.width, bitmap.height);
+                this._applyFilterToContext(ctx, canvas, bitmap, options);
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            applyCinematicTone(imageData) {
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];
+                    let g = data[i + 1];
+                    let b = data[i + 2];
+                    
+                    const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+                    const highlightFactor = Math.min(brightness / 180, 1);
+                    r = r + highlightFactor * 25;
+                    g = g + highlightFactor * 10;
+                    b = b - highlightFactor * 25;
+
+                    const shadowFactor = Math.min((255 - brightness) / 200, 1);
+                    r = r - shadowFactor * 20;
+                    b = b + shadowFactor * 20;
+                    
+                    data[i] = Math.max(0, Math.min(255, r));
+                    data[i+1] = Math.max(0, Math.min(255, g));
+                    data[i+2] = Math.max(0, Math.min(255, b));
+                }
+                return imageData;
+            },
+
+            _applyFilterToContext(ctx, canvas, bitmap, options) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.filter = 'none';
+                const scaledWidth = canvas.width;
+                const scaledHeight = canvas.height;
+
+                if (options.preset === 'sharpen') {
+                    ctx.drawImage(bitmap, 0, 0, scaledWidth, scaledHeight);
+                    const imageData = ctx.getImageData(0, 0, scaledWidth, scaledHeight);
+                    const sharpenedData = this.applyConvolution(imageData, [0, -1, 0, -1, 5, -1, 0, -1, 0]);
+                    ctx.putImageData(sharpenedData, 0, 0);
+                    return;
+                } else if (options.preset === 'cinematic') {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = scaledWidth;
+                    tempCanvas.height = scaledHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.filter = 'contrast(120%) saturate(90%)';
+                    tempCtx.drawImage(bitmap, 0, 0, scaledWidth, scaledHeight);
+                    const imageData = tempCtx.getImageData(0, 0, scaledWidth, scaledHeight);
+                    const cinematicData = this.applyCinematicTone(imageData);
+                    ctx.putImageData(cinematicData, 0, 0);
+                    return;
+                }
+
+                let filterString = '';
+                if (options.preset) {
+                    switch (options.preset) {
+                        case 'grayscale': filterString = 'grayscale(100%)'; break;
+                        case 'sepia': filterString = 'sepia(100%)'; break;
+                        case 'invert': filterString = 'invert(100%)'; break;
+                        case 'gaussian_blur': filterString = `blur(4px)`; break;
+                        case 'lomo': filterString = 'contrast(140%) saturate(120%)'; break;
+                        case 'cyberpunk': filterString = 'contrast(140%) brightness(85%) hue-rotate(-20deg) saturate(180%)'; break;
+                        case 'jp_fresh': filterString = 'contrast(90%) brightness(110%) saturate(80%) sepia(10%)'; break;
+                        case 'ins_style': filterString = 'brightness(110%) contrast(110%) saturate(120%) sepia(6%)'; break;
+                    }
+                } else {
+                    filterString = `brightness(${options.brightness}%) contrast(${options.contrast}%) saturate(${options.saturation}%) blur(${options.blur}px)`;
+                }
+
+                ctx.filter = filterString;
+                ctx.drawImage(bitmap, 0, 0, scaledWidth, scaledHeight);
+                ctx.filter = 'none';
+                
+                if (options.preset === 'lomo' || options.preset === 'vignette') {
+                    ctx.globalCompositeOperation = 'source-over';
+                    const outerRadius = Math.sqrt(Math.pow(scaledWidth / 2, 2) + Math.pow(scaledHeight / 2, 2));
+                    const innerRadiusRatio = (options.preset === 'lomo') ? 3 : 2.5;
+                    const gradient = ctx.createRadialGradient(
+                        scaledWidth / 2, scaledHeight / 2, scaledWidth / innerRadiusRatio,
+                        scaledWidth / 2, scaledHeight / 2, outerRadius
+                    );
+                    if (options.preset === 'lomo') {
+                        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                        gradient.addColorStop(0.5, 'rgba(0,0,0,0.1)');
+                        gradient.addColorStop(1, 'rgba(0,0,0,0.6)');
+                    } else { // vignette
+                        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                        gradient.addColorStop(0.5, 'rgba(0,0,0,0.2)');
+                        gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                    }
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+                } else if (options.preset === 'cyberpunk') {
+                    ctx.globalCompositeOperation = 'color-dodge';
+                    ctx.fillStyle = 'rgba(50, 100, 255, 0.15)';
+                    ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+                    ctx.globalCompositeOperation = 'overlay';
+                    ctx.fillStyle = 'rgba(255, 20, 147, 0.1)';
+                    ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+                    ctx.globalCompositeOperation = 'source-over';
+                } else if (options.preset === 'jp_fresh') {
+                     ctx.globalCompositeOperation = 'soft-light';
+                     ctx.fillStyle = 'rgba(173, 216, 230, 0.2)';
+                     ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+                     ctx.globalCompositeOperation = 'source-over';
+                }
+            },
+            
+            applyConvolution(imageData, kernel) {
+                const src = imageData.data;
+                const width = imageData.width;
+                const height = imageData.height;
+                const dst = new Uint8ClampedArray(src.length);
+                const kernelSize = Math.sqrt(kernel.length);
+                const halfKernel = Math.floor(kernelSize / 2);
+
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const dstOff = (y * width + x) * 4;
+                        let r = 0, g = 0, b = 0;
+
+                        for (let ky = 0; ky < kernelSize; ky++) {
+                            for (let kx = 0; kx < kernelSize; kx++) {
+                                const scy = y + ky - halfKernel;
+                                const scx = x + kx - halfKernel;
+
+                                if (scy >= 0 && scy < height && scx >= 0 && scx < width) {
+                                    const srcOff = (scy * width + scx) * 4;
+                                    const weight = kernel[ky * kernelSize + kx];
+                                    r += src[srcOff] * weight;
+                                    g += src[srcOff + 1] * weight;
+                                    b += src[srcOff + 2] * weight;
+                                }
+                            }
+                        }
+                        dst[dstOff] = r;
+                        dst[dstOff + 1] = g;
+                        dst[dstOff + 2] = b;
+                        dst[dstOff + 3] = src[dstOff + 3];
+                    }
+                }
+                return new ImageData(dst, width, height);
+            },
+
+            async addBackground(bitmap, options) {
+                const { padding } = options;
+                if (padding <= 0) return this.convert(bitmap, { format: 'png' });
+
+                const newWidth = bitmap.width + padding * 2;
+                const newHeight = bitmap.height + padding * 2;
+                const { canvas, ctx } = this.createCanvas(newWidth, newHeight);
+
+                if (options.type === 'gradient') {
+                    let grad;
+                    switch (options.direction) {
+                        case 'to-right':
+                            grad = ctx.createLinearGradient(0, 0, newWidth, 0);
+                            break;
+                        case 'to-top-right':
+                            grad = ctx.createLinearGradient(0, newHeight, newWidth, 0);
+                            break;
+                        case 'to-bottom-right':
+                            grad = ctx.createLinearGradient(0, 0, newWidth, newHeight);
+                            break;
+                        case 'to-bottom':
+                        default:
+                            grad = ctx.createLinearGradient(0, 0, 0, newHeight);
+                            break;
+                    }
+                    grad.addColorStop(0, options.color1);
+                    grad.addColorStop(1, options.color2);
+                    ctx.fillStyle = grad;
+                } else { // solid
+                    if (options.color === 'random') {
+                        ctx.fillStyle = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                    } else {
+                        ctx.fillStyle = options.color;
+                    }
+                }
+
+                ctx.fillRect(0, 0, newWidth, newHeight);
+                ctx.drawImage(bitmap, padding, padding);
+
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            async getHistogramData(file) {
+                let bitmap = null;
+                try {
+                    bitmap = await createImageBitmap(file);
+                    const { canvas, ctx } = this.createCanvas(bitmap.width, bitmap.height);
+                    ctx.drawImage(bitmap, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+
+                    const rData = new Array(256).fill(0);
+                    const gData = new Array(256).fill(0);
+                    const bData = new Array(256).fill(0);
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        rData[data[i]]++;
+                        gData[data[i + 1]]++;
+                        bData[data[i + 2]]++;
+                    }
+
+                    return { r: rData, g: gData, b: bData };
+                } finally {
+                    if (bitmap) {
+                        bitmap.close();
+                    }
+                }
+            },
+
+            async splice(bitmaps, options) {
+                if (bitmaps.length === 0) throw new Error("没有图片可供拼接。");
+
+                switch (options.mode) {
+                    case 'nine-square':
+                        return this._spliceNineSquare(bitmaps, options);
+                    case 'random-scatter':
+                        return this._spliceRandomScatter(bitmaps, options);
+                    case 'fixed-collage':
+                        return this._spliceFixedCollage(bitmaps, options);
+                    case 'vertical':
+                    case 'horizontal':
+                    default:
+                        return this._spliceLinear(bitmaps, options);
+                }
+            },
+
+            async _spliceLinear(bitmaps, options) {
+                const { mode, spacing } = options;
+                let totalWidth = 0;
+                let totalHeight = 0;
+
+                if (mode === 'horizontal') {
+                    totalHeight = Math.max(...bitmaps.map(b => b.height));
+                    totalWidth = bitmaps.reduce((sum, b) => sum + b.width, 0) + spacing * (bitmaps.length - 1);
+                } else {
+                    totalWidth = Math.max(...bitmaps.map(b => b.width));
+                    totalHeight = bitmaps.reduce((sum, b) => sum + b.height, 0) + spacing * (bitmaps.length - 1);
+                }
+
+                const { canvas, ctx } = this.createCanvas(totalWidth, totalHeight);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                let currentX = 0;
+                let currentY = 0;
+
+                bitmaps.forEach(bitmap => {
+                    if (mode === 'horizontal') {
+                        const yOffset = (totalHeight - bitmap.height) / 2;
+                        ctx.drawImage(bitmap, currentX, yOffset);
+                        currentX += bitmap.width + spacing;
+                    } else {
+                        const xOffset = (totalWidth - bitmap.width) / 2;
+                        ctx.drawImage(bitmap, xOffset, currentY);
+                        currentY += bitmap.height + spacing;
+                    }
+                    bitmap.close();
+                });
+
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            async _spliceNineSquare(bitmaps, options) {
+                const images = bitmaps.slice(0, 9);
+                const { spacing } = options;
+
+                if (images.length === 0) throw new Error("没有图片可供拼接。");
+
+                const cellWidth = Math.max(...images.map(b => b.width));
+                const cellHeight = Math.max(...images.map(b => b.height));
+                const numCols = images.length < 3 ? images.length : 3;
+                const numRows = Math.ceil(images.length / 3);
+
+                const totalWidth = cellWidth * numCols + spacing * (numCols - 1);
+                const totalHeight = cellHeight * numRows + spacing * (numRows - 1);
+
+                const { canvas, ctx } = this.createCanvas(totalWidth, totalHeight);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                images.forEach((bitmap, i) => {
+                    const row = Math.floor(i / 3);
+                    const col = i % 3;
+
+                    const cellX = col * (cellWidth + spacing);
+                    const cellY = row * (cellHeight + spacing);
+
+                    const drawX = cellX + (cellWidth - bitmap.width) / 2;
+                    const drawY = cellY + (cellHeight - bitmap.height) / 2;
+
+                    ctx.drawImage(bitmap, drawX, drawY);
+                    bitmap.close();
+                });
+                
+                bitmaps.slice(9).forEach(b => b.close());
+
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            async _spliceRandomScatter(bitmaps, options) {
+                if (bitmaps.length === 0) throw new Error("没有图片可供拼接。");
+                
+                const totalArea = bitmaps.reduce((sum, b) => sum + (b.width * b.height), 0);
+                const canvasDim = Math.max(Math.sqrt(totalArea) * 1.8, 500); // Ensure a minimum size
+                const { canvas, ctx } = this.createCanvas(canvasDim, canvasDim);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                bitmaps.forEach(bitmap => {
+                    const scale = Math.random() * 0.4 + 0.7; 
+                    const scaledWidth = bitmap.width * scale;
+                    const scaledHeight = bitmap.height * scale;
+                    
+                    const angle = (Math.random() - 0.5) * (30 * Math.PI / 180);
+
+                    const x = Math.random() * (canvas.width - scaledWidth);
+                    const y = Math.random() * (canvas.height - scaledHeight);
+                    
+                    ctx.save();
+                    ctx.translate(x + scaledWidth / 2, y + scaledHeight / 2);
+                    ctx.rotate(angle);
+                    ctx.drawImage(bitmap, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+                    ctx.restore();
+                    
+                    bitmap.close();
+                });
+
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            },
+
+            async _spliceFixedCollage(bitmaps, options) {
+                const { width: targetWidth, height: targetHeight } = options;
+                const numImages = bitmaps.length;
+
+                if (numImages === 0) throw new Error("没有图片可供拼接。");
+
+                const { canvas, ctx } = this.createCanvas(targetWidth, targetHeight);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const canvasRatio = targetWidth / targetHeight;
+                let cols = Math.ceil(Math.sqrt(numImages * canvasRatio));
+                let rows = Math.ceil(numImages / cols);
+                
+                while (cols > 1 && (cols - 1) * rows >= numImages) {
+                    cols--;
+                }
+                while (rows > 1 && cols * (rows - 1) >= numImages) {
+                    rows--;
+                }
+
+                const cellWidth = targetWidth / cols;
+                const cellHeight = targetHeight / rows;
+
+                bitmaps.forEach((bitmap, i) => {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+
+                    const cellX = col * cellWidth;
+                    const cellY = row * cellHeight;
+
+                    const imgRatio = bitmap.width / bitmap.height;
+                    const cellRatio = cellWidth / cellHeight;
+                    
+                    let drawWidth, drawHeight;
+                    if (imgRatio > cellRatio) {
+                        drawWidth = cellWidth;
+                        drawHeight = cellWidth / imgRatio;
+                    } else {
+                        drawHeight = cellHeight;
+                        drawWidth = cellHeight * imgRatio;
+                    }
+
+                    const drawX = cellX + (cellWidth - drawWidth) / 2;
+                    const drawY = cellY + (cellHeight - drawHeight) / 2;
+
+                    ctx.drawImage(bitmap, drawX, drawY, drawWidth, drawHeight);
+                    bitmap.close();
+                });
+
+                return await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            }
+        }
+    };
+
+    App.init();
 });
-
-// Remove the redundant instantiation outside DOMContentLoaded
-// if (typeof window !== 'undefined') {
-//     window.app = app; // This line is no longer needed or should be placed carefully
-// }
